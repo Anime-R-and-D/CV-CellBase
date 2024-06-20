@@ -260,6 +260,24 @@ public:
 		return img;
 	}
 };
+class LineOnly : public Filter {
+
+	Mat apply(Mat srcImg) {
+		auto dstImg = Mat(srcImg.size(), srcImg.type());
+		for (int imgY = 1; imgY < srcImg.rows - 1; imgY++) {
+			for (int imgX = 1; imgX < srcImg.cols - 1; imgX++) {
+				if (srcImg.at<Vec3b>(imgY, imgX) == Vec3b(4, 2, 10)) {
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(4, 2, 10);
+				}
+				else {
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(255, 255, 255);
+				}
+			}
+		}
+		return dstImg;
+	}
+
+};
 
 class LineRemover : public Filter {
 	Vec3b lineColor;
@@ -326,6 +344,32 @@ public:
 	}
 };
 
+
+	Mat applyLayers(vector<Mat> srcImgs) {
+		auto dstImg = Mat(srcImgs.at(0).size(), srcImgs.at(0).type());
+		for (int imgY = 0; imgY < srcImgs.at(0).rows; imgY++) {
+			for (int imgX = 0; imgX < srcImgs.at(0).cols; imgX++) {
+				int totalB = 0;
+				int totalG = 0;
+				int totalR = 0;
+				for (Mat img : srcImgs) {
+					totalB += img.at<Vec3b>(imgY, imgX)[0];
+					totalG += img.at<Vec3b>(imgY, imgX)[1];
+					totalR += img.at<Vec3b>(imgY, imgX)[2];
+				}
+				dstImg.at<Vec3b>(imgY, imgX) = Vec3b(totalB / srcImgs.size(), totalG / srcImgs.size(), totalR / srcImgs.size());
+
+			}
+
+		}
+		return dstImg;
+	}
+
+
+
+
+
+
 Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
 	auto img = srcImg;
 
@@ -339,4 +383,8 @@ Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
 Mat applyFilters(Mat srcImg, const initializer_list<shared_ptr<Filter>> filters) {
 	span _span(filters.begin(), filters.size());
 	return applyFilters(srcImg, _span);
+
+
 }
+
+
