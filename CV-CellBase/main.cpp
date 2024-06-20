@@ -34,7 +34,8 @@ int main()
 	Mat dstImage = applyFilters(
 		srcImage, {
 					  make_shared<::CellBlur>(20.0f, 20, targetColorsList),
-					  make_shared<::GaussianBlur>(0.5f, 3),
+					  make_shared<LineRemover>(Vec3b(4,2,10), Vec3b(255,255,255), 100),
+					  make_shared<::GaussianBlur>(10.0f, 5),
 				  });
 
 	cv::imshow("Result", dstImage);
