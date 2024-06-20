@@ -189,6 +189,71 @@ public:
 	}
 };
 
+class LineRemover : public Filter {
+	Vec3b lineColor;
+	Vec3b backgroundColor;
+	int maxTimes;
+
+	auto getRepaintColor(Mat srcImg, int x, int y) {
+		const int width = srcImg.cols;
+		const int height = srcImg.rows;
+
+		for (int kernelY = -1; kernelY <= 1; kernelY++) {
+			for (int kernelX = -1; kernelX <= 1; kernelX++) {
+				const int sampleY = y + kernelY;
+				const int sampleX = x + kernelX;
+				if (sampleY < 0 || height <= sampleY || sampleX < 0 || width <= sampleX) {
+					continue;
+				}
+
+				auto srcColor = srcImg.at<Vec3b>(sampleY, sampleX);
+				if (srcColor != lineColor && srcColor != backgroundColor) {
+					return srcColor;
+				}
+			}
+		}
+
+		return lineColor;
+	}
+
+	pair<Mat, int> _apply(Mat srcImg) {
+		auto dstImg = srcImg.clone();
+
+		int width = srcImg.cols;
+		int height = srcImg.rows;
+
+		int notFoundCount = 0;
+
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				auto srcColor = srcImg.at<Vec3b>(y, x);
+				if (srcColor == lineColor) {
+					auto dstColor = getRepaintColor(srcImg, x, y);
+					if (dstColor != lineColor) { dstImg.at<Vec3b>(y, x) = dstColor; }
+					else { notFoundCount++; }
+				}
+			}
+		}
+
+		return make_pair(dstImg, notFoundCount);
+	}
+
+public:
+	LineRemover(Vec3b _lineColor, Vec3b _backgroundColor, int _maxTimes) : lineColor(_lineColor), backgroundColor(backgroundColor), maxTimes(_maxTimes) {}
+
+	Mat apply(Mat srcImg) {
+		auto img = srcImg;
+
+		for (int i = 0; i < maxTimes; i++) {
+			auto ret = _apply(img);
+			if (ret.second == 0) { break; }
+			else { img = ret.first; }
+		}
+
+		return img;
+	}
+};
+
 Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
 	auto img = srcImg;
 

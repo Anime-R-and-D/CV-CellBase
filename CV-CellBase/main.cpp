@@ -10,7 +10,7 @@ int main() {
 
 	Mat dstImage = applyFilters(
 		srcImage, {
-			make_shared<SobelAbsXY>(),
+			make_shared<LineRemover>(Vec3b(4,2,10), Vec3b(255,255,255), 100),
 			make_shared<::GaussianBlur>(2.0f,5),
 		});
 	imshow("Result", dstImage);
