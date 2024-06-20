@@ -39,6 +39,7 @@ inline Vec<T, N> max(Vec<T, N> src1, Vec<T, N> src2) {
 class Filter {
 public:
 	virtual Mat apply(Mat srcImg) = 0;
+
 };
 
 class LinearFilter :public Filter {
@@ -186,6 +187,77 @@ public:
 				kernel(kernelY, kernelX) /= gauss_total;
 			}
 		}
+	}
+};
+
+class CellBlur : public Filter {
+public:
+	Mat_<float> kernel;
+	vector<vector<Vec3b>> targets;
+
+	CellBlur(float sigma, int size, vector<vector<Vec3b>> _targets) : kernel(::GaussianBlur(sigma, size).kernel), targets(_targets) {	}
+
+	Mat _apply(Mat srcImg, vector<Vec3b> target) {
+		auto dstImg = Mat(srcImg.size(), srcImg.type());
+
+		const int kernelCenterY = kernel.rows / 2;
+		const int kernelCenterX = kernel.cols / 2;
+		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
+			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
+				if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgY, imgX)) != target.end())) {
+					Vec3f dstImgPixel(0, 0, 0);
+					int countAll = 0;
+					int countSelf = 0;
+
+					for (int kernelY = 0; kernelY < kernel.rows; kernelY++) {
+						for (int kernelX = 0; kernelX < kernel.cols; kernelX++) {
+							auto imgSampleY = clamp(imgY + kernelY - kernelCenterY, 0, srcImg.rows - 1);
+							auto imgSampleX = clamp(imgX + kernelX - kernelCenterX, 0, srcImg.cols - 1);
+							auto weight = kernel.at<float>(kernelY, kernelX);
+
+							if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgSampleY, imgSampleX)) != target.end())) {
+								auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
+								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
+							}
+							else if ((imgX != 0 && imgY != 0) && dstImg.at<Vec3b>(imgY - 1, imgX - 1) != srcImg.at<Vec3b>(imgY - 1, imgX - 1)) {
+								auto srcImgPixel = dstImg.at<Vec3b>(imgY - 1, imgX - 1);
+								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
+							}
+							else {
+								auto srcImgPixel = srcImg.at<Vec3b>(imgY, imgX);
+								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
+
+
+								countSelf++;
+							}
+
+							countAll++;
+						}
+					}
+
+					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel;
+					if (imgX == 380 && imgY == 400) {
+						dstImg.at<Vec3b>(imgY, imgX) = Vec3b(0, 255, 0);
+
+						cout << static_cast<float>(countSelf) / countAll << endl;
+					}
+				}
+				else {
+					dstImg.at<Vec3b>(imgY, imgX) = srcImg.at<Vec3b>(imgY, imgX);
+				}
+			}
+		}
+		return dstImg;
+	}
+
+	Mat apply(Mat srcImg) {
+		auto img = srcImg;
+
+		for (auto target : targets) {
+			img = _apply(img, target);
+		}
+
+		return img;
 	}
 };
 
