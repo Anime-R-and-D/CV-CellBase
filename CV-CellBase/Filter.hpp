@@ -236,11 +236,11 @@ public:
 					}
 
 					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel;
-					if (imgX == 380 && imgY == 400) {
+				/*	if (imgX == 380 && imgY == 400) {
 						dstImg.at<Vec3b>(imgY, imgX) = Vec3b(0, 255, 0);
 
 						cout << static_cast<float>(countSelf) / countAll << endl;
-					}
+					}*/
 				}
 				else {
 					dstImg.at<Vec3b>(imgY, imgX) = srcImg.at<Vec3b>(imgY, imgX);
@@ -431,6 +431,28 @@ public:
 		return dstImg;
 	}
 
+	Mat applyNoise(Mat img, Mat noise) {
+
+		auto dstImg = Mat(img.size(), img.type());
+		for (int imgY = 0; imgY < img.rows; imgY++) {
+			for (int imgX = 0; imgX < img.cols; imgX++) {
+				if (img.at<Vec3b>(imgY, imgX) == Vec3b(0, 0, 0)) {
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(0,0,0);
+				}
+				else {
+					int imgB = img.at<Vec3b>(imgY, imgX)[0];
+					int imgG = img.at<Vec3b>(imgY, imgX)[1];
+					int imgR = img.at<Vec3b>(imgY, imgX)[2];
+
+					int noiseB = noise.at<Vec3b>(imgY, imgX)[0];
+					int noiseG = noise.at<Vec3b>(imgY, imgX)[1];
+					int noiseR = noise.at<Vec3b>(imgY, imgX)[2];
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(imgB+noiseB, imgG+noiseG, imgR+noiseR);
+				}
+			}
+		}
+		return dstImg;
+	}
 
 
 

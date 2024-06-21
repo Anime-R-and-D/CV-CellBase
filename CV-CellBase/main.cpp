@@ -42,39 +42,59 @@ int main()
 
 	vector targetColorsList = {clothesColors, hairColors1, hairColors2, eyeColors};
 
-	Mat dstImage = applyFilters(
+	Mat layer1 = applyFilters(
 		srcImage, {
 					  
 					  //
 					 // make_shared<::SobelAbsXY>(),
-					  make_shared<::LineOnly>(),
+				make_shared<::CellBlur>(20.0f, 21, targetColorsList),
+					//  make_shared<::LineOnly>(),
 				/*make_shared<::CellBlur>(20.0f, 21, targetColorsList),
 				make_shared<::GaussianBlur>(10.0f, 11),*/
 				  });
 
-	Mat dstImage1 = applyFilters(
+	Mat layer2 = applyFilters(
 		srcImage, {
 
 			//
 		   // make_shared<::SobelAbsXY>(),
+			make_shared<::CellBlur>(20.0f, 21, targetColorsList),
 			make_shared<LineRemover>(Vec3b(4,2,10), Vec3b(255,255,255), 100),
 			/*make_shared<::CellBlur>(20.0f, 21, targetColorsList),
 			make_shared<::GaussianBlur>(10.0f, 11),*/
 		});
+	Mat layer3 = applyFilters(
+		srcImage, {
 
-	Mat alphaImage = applyAlpha(srcImage, 0.6);
-
+		make_shared<LineOnly>(),
+		});
+	Mat chalk1 = applyFilters(
+		srcImage, {
+		make_shared<::SobelAbsXY>(),
+		make_shared<::GaussianBlur>(2.0f, 3),
+		});
+	cv::Mat noise(chalk1.size(), chalk1.type());
+	cv::randn(noise, 300, 200);
 	
-	//cv::imshow("Image1", dstImage);
+	
+	Mat chalkResult = applyNoise(chalk1, noise);
+	cv::cvtColor(chalkResult, chalkResult, cv::COLOR_BGR2GRAY);
+	//cv::Mat letter = noise - chalk1;
+	//cv::cvtColor(letter, letter, cv::COLOR_BGR2GRAY);
+	
+	Mat result1 = applyLayersWithAlpha(layer1, layer2, 0.7);
+	Mat finalResult = applyLayersWithAlpha(result1, layer3, 0.3);
+	
 	//cv::imshow("Image2", dstImage1);
 	//Mat dstImage2 = applyLayersWithAlpha(dstImage1, dstImage, 0.1);
-	cv::imshow("NewResult", alphaImage);
+	cv::imshow("NewResult", finalResult);
+	cv::imshow("ChalkTest", chalkResult);
 	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
 	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
 	// imshow("SobelX", SobelX().apply(srcImage));
 	// imshow("SobelY", SobelY().apply(srcImage));
 	// imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
-	setMouseCallback("Source", onMouse, &srcImage);
+	setMouseCallback("ChalkTest", onMouse, &chalk1);
 	cv::waitKey(0);
 	return 0;
 }
