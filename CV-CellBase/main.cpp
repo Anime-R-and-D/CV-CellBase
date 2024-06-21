@@ -1,4 +1,16 @@
 #include "Filter.hpp"
+
+
+static void onMouse(int event, int x, int y, int f, void* param) {
+	Mat& image = *((Mat*)param);
+	Vec4b pixel = image.at<Vec4b>(y, x);
+	if (event == EVENT_LBUTTONDOWN)
+	{
+
+		cout << pixel << endl;
+	}
+};
+
 int main()
 {
 	string imagePath = "src.png";
@@ -50,17 +62,19 @@ int main()
 			make_shared<::GaussianBlur>(10.0f, 11),*/
 		});
 
+	Mat alphaImage = applyAlpha(srcImage, 0.6);
 
-	cv::imshow("Image1", dstImage);
-	cv::imshow("Image2", dstImage1);
-	Mat dstImage2 = applyLayersWithAlpha(dstImage1, dstImage, 0.9);
-	cv::imshow("NewResult", dstImage2);
+	
+	//cv::imshow("Image1", dstImage);
+	//cv::imshow("Image2", dstImage1);
+	//Mat dstImage2 = applyLayersWithAlpha(dstImage1, dstImage, 0.1);
+	cv::imshow("NewResult", alphaImage);
 	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
 	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
 	// imshow("SobelX", SobelX().apply(srcImage));
 	// imshow("SobelY", SobelY().apply(srcImage));
 	// imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
-
+	setMouseCallback("Source", onMouse, &srcImage);
 	cv::waitKey(0);
 	return 0;
 }

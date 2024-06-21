@@ -405,6 +405,32 @@ public:
 		return dstImg;
 	}
 
+	Mat applyAlpha(Mat image, double alpha) {
+		if (alpha > 1) {
+			alpha == 1;
+		}
+		auto dstImg = Mat(image.size(), image.type());
+		for (int imgY = 0; imgY < image.rows-1; imgY++) {
+			for (int imgX = 0; imgX < image.cols-1; imgX++) {
+				if (image.at<Vec4b>(imgY, imgX) == Vec4b(255, 255, 255, 255)) {
+					dstImg.at<Vec4b>(imgY, imgX) = Vec4b(255, 255, 255, 255);
+					
+				}
+				else {
+					int newB = image.at<Vec4b>(imgY, imgX)[0];
+					int newG = image.at<Vec4b>(imgY, imgX)[1];
+					int newR = image.at<Vec4b>(imgY, imgX)[2];
+					int newA = image.at<Vec4b>(imgY, imgX)[3];
+
+					dstImg.at<Vec4b>(imgY, imgX) = Vec4b(newB * alpha + (255 * (1 - alpha)), newG * alpha + (255 * (1 - alpha)), newR * alpha + (255 * (1 - alpha)), newA*alpha + (255 * (1-alpha)));
+				}
+			}
+			
+		}
+		
+		return dstImg;
+	}
+
 
 
 
