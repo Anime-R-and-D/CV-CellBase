@@ -40,13 +40,20 @@ int main()
 				make_shared<::GaussianBlur>(10.0f, 11),*/
 				  });
 
+	Mat dstImage1 = applyFilters(
+		srcImage, {
 
-	cv::imshow("Result", dstImage);
-	Mat dstImage2 = applyLayers({
-		dstImage,
-		srcImage
-
+			//
+		   // make_shared<::SobelAbsXY>(),
+			make_shared<LineRemover>(Vec3b(4,2,10), Vec3b(255,255,255), 100),
+			/*make_shared<::CellBlur>(20.0f, 21, targetColorsList),
+			make_shared<::GaussianBlur>(10.0f, 11),*/
 		});
+
+
+	cv::imshow("Image1", dstImage);
+	cv::imshow("Image2", dstImage1);
+	Mat dstImage2 = applyLayersWithAlpha(dstImage1, dstImage, 0.9);
 	cv::imshow("NewResult", dstImage2);
 	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
 	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));

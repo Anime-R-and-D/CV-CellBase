@@ -349,22 +349,61 @@ public:
 		auto dstImg = Mat(srcImgs.at(0).size(), srcImgs.at(0).type());
 		for (int imgY = 0; imgY < srcImgs.at(0).rows; imgY++) {
 			for (int imgX = 0; imgX < srcImgs.at(0).cols; imgX++) {
+				int whiteBuff = 0;
 				int totalB = 0;
 				int totalG = 0;
 				int totalR = 0;
 				for (Mat img : srcImgs) {
-					totalB += img.at<Vec3b>(imgY, imgX)[0];
-					totalG += img.at<Vec3b>(imgY, imgX)[1];
-					totalR += img.at<Vec3b>(imgY, imgX)[2];
+					if (img.at<Vec3b>(imgY, imgX) == Vec3b(255, 255, 255)) {
+						whiteBuff++;
+					}
+					else {
+						totalB += img.at<Vec3b>(imgY, imgX)[0];
+						totalG += img.at<Vec3b>(imgY, imgX)[1];
+						totalR += img.at<Vec3b>(imgY, imgX)[2];
+					}
 				}
-				dstImg.at<Vec3b>(imgY, imgX) = Vec3b(totalB / srcImgs.size(), totalG / srcImgs.size(), totalR / srcImgs.size());
-
+				if (whiteBuff == srcImgs.size()) {
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(255, 255, 255);
+				}
+				else {
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(totalB / (srcImgs.size() - whiteBuff), totalG / (srcImgs.size() - whiteBuff), totalR / (srcImgs.size() - whiteBuff));
+				}
 			}
 
 		}
 		return dstImg;
 	}
 
+
+	Mat applyLayersWithAlpha(Mat bg, Mat fg, double alpha) {
+		if (alpha > 1) {
+			alpha == 1;
+		}
+		auto dstImg = Mat(bg.size(), bg.type());
+		for (int imgY = 0; imgY < bg.rows; imgY++) {
+			for (int imgX = 0; imgX < bg.cols; imgX++) {
+				if (fg.at<Vec3b>(imgY, imgX) == Vec3b(255,255,255)) {
+					dstImg.at<Vec3b>(imgY, imgX) = bg.at<Vec3b>(imgY, imgX);
+
+				}
+				else if (bg.at<Vec3b>(imgY, imgX) == Vec3b(255, 255, 255)) {
+					dstImg.at<Vec3b>(imgY, imgX) = fg.at<Vec3b>(imgY, imgX);
+				}
+				else {
+					int bgB = bg.at<Vec3b>(imgY, imgX)[0] * (1 - alpha);
+					int bgG = bg.at<Vec3b>(imgY, imgX)[1] * (1 - alpha);
+					int bgR = bg.at<Vec3b>(imgY, imgX)[2] * (1 - alpha);
+
+					int fgB = fg.at<Vec3b>(imgY, imgX)[0] * alpha;
+					int fgG = fg.at<Vec3b>(imgY, imgX)[1] * alpha;
+					int fgR = fg.at<Vec3b>(imgY, imgX)[2] * alpha;
+					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(bgB + fgB, bgG + fgG, bgR + fgR);
+				}
+			}
+		}
+		return dstImg;
+	}
 
 
 
