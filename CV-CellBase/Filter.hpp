@@ -432,32 +432,6 @@ public:
 		return dstImg;
 	}
 
-	Mat applyNoise(Mat img, Mat noise) {
-
-		auto dstImg = Mat(img.size(), img.type());
-		for (int imgY = 0; imgY < img.rows; imgY++) {
-			for (int imgX = 0; imgX < img.cols; imgX++) {
-				if (img.at<Vec3b>(imgY, imgX) == Vec3b(0, 0, 0)) {
-					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(0,0,0);
-				}
-				else {
-					int imgB = img.at<Vec3b>(imgY, imgX)[0];
-					int imgG = img.at<Vec3b>(imgY, imgX)[1];
-					int imgR = img.at<Vec3b>(imgY, imgX)[2];
-
-					int noiseB = noise.at<Vec3b>(imgY, imgX)[0];
-					int noiseG = noise.at<Vec3b>(imgY, imgX)[1];
-					int noiseR = noise.at<Vec3b>(imgY, imgX)[2];
-					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(imgB+noiseB, imgG+noiseG, imgR+noiseR);
-				}
-			}
-		}
-		return dstImg;
-	}
-
-
-
-
 Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
 	auto img = srcImg;
 
@@ -471,8 +445,4 @@ Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
 Mat applyFilters(Mat srcImg, const initializer_list<shared_ptr<Filter>> filters) {
 	span _span(filters.begin(), filters.size());
 	return applyFilters(srcImg, _span);
-
-
 }
-
-

@@ -1,13 +1,34 @@
 #include "Filter.hpp"
 
+Mat chalkFilter(Mat srcImage) {
+	auto colorLine = applyFilters(
+		srcImage, {
+			make_shared<::SobelAbsXY>(),
+			make_shared<::GaussianBlur>(2.0f, 3),
+		});
+
+	Mat grayLine;
+	cvtColor(colorLine, grayLine, COLOR_BGR2GRAY);
+	Mat mask = grayLine != 0;
+
+	cv::Mat noise(colorLine.size(), colorLine.type());
+	cv::randn(noise, 300, 200);
+
+	Mat_<Vec3i> iNoisedColorLine = static_cast<Mat_<Vec3i>>(colorLine) + static_cast<Mat_<Vec3i>>(noise);
+	Mat_<Vec3b> bNoisedColorLine = iNoisedColorLine & Vec3i(255, 255, 255);
+
+	Mat noisedGrayLine;
+	cvtColor(bNoisedColorLine, noisedGrayLine, COLOR_BGR2GRAY);
+
+	return noisedGrayLine & mask;
+}
 
 static void onMouse(int event, int x, int y, int f, void* param) {
-	Mat& image = *((Mat*)param);
-	Vec4b pixel = image.at<Vec4b>(y, x);
 	if (event == EVENT_LBUTTONDOWN)
 	{
-
-		cout << pixel << endl;
+		auto image = static_cast<Mat*>(param);
+		auto pixel = image->at<uchar>(y, x);
+		cout << static_cast<int>(pixel) << endl;
 	}
 };
 
@@ -148,32 +169,21 @@ int main()
 
 	//	make_shared<LineOnly>(),
 	//	});
-	//Mat chalk1 = applyFilters(
-	//	srcImage, {
-	//	make_shared<::SobelAbsXY>(),
-	//	make_shared<::GaussianBlur>(2.0f, 3),
-	//	});
-	//cv::Mat noise(chalk1.size(), chalk1.type());
-	//cv::randn(noise, 300, 200);
-	//
-	//
-	//Mat chalkResult = applyNoise(chalk1, noise);
-	//cv::cvtColor(chalkResult, chalkResult, cv::COLOR_BGR2GRAY);
-	//cv::Mat letter = noise - chalk1;
-	//cv::cvtColor(letter, letter, cv::COLOR_BGR2GRAY);
-	
 
-	
 	//cv::imshow("Image2", dstImage1);
 	//Mat dstImage2 = applyLayersWithAlpha(dstImage1, dstImage, 0.1);
 
-	//cv::imshow("ChalkTest", chalkResult);
 	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
 	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
 	// imshow("SobelX", SobelX().apply(srcImage));
 	// imshow("SobelY", SobelY().apply(srcImage));
 	// imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
-	//setMouseCallback("ChalkTest", onMouse, &chalk1);
+
+	// auto chalkImage = chalkFilter(srcImage);
+	// imshow("ChalkFilter", chalkImage);
+	// auto charImagePtr = static_cast<void*>(&chalkImage);
+	// setMouseCallback("ChalkFilter", onMouse, (charImagePtr));
+
 	cv::waitKey(0);
 	return 0;
 }
