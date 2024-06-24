@@ -94,22 +94,33 @@ int main()
 
 	}
 
-	for (Mat img : newData) {
+	/*for (Mat img : newData) {
 		imshow("newData", img);
 		waitKey(0);
+	}*/
+
+	int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
+
+	
+	cv::VideoWriter writer("results.avi", fourcc, 12, cv::Size(newData.at(0).cols, newData.at(0).rows), true);
+	
+	if (!writer.isOpened()) {
+		cout << "writer not opened" << endl;
 	}
 
-	//int fourcc = cv::VideoWriter::fourcc('m', 'p', '4', 'v');
-	//cv::VideoWriter writer("result.mp4", fourcc, 22.0, cv::Size(newData.at(0).cols, newData.at(0).rows), true);
 	//std::cout << "ttest" << endl;
 		//imshow("new results", newData);
-	/*for (int i = 0; i < newData.size(); i++) {
-
+	for (int i = 0; i < newData.size(); i++) {
 		writer.write(newData.at(i));
 
-		*/
+		
 
-//}
+
+		
+
+}
+
+	writer.release();
 
 	//Mat layer1 = applyFilters(
 	//	srcImage, {
