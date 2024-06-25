@@ -198,14 +198,26 @@ public:
 
 	CellBlur(float sigma, int size, vector<vector<Vec3b>> _targets) : kernel(::GaussianBlur(sigma, size).kernel), targets(_targets) {	}
 
-	Mat _apply(Mat srcImg, vector<Vec3b> target) {
+	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> target) {
+		auto dstImg = Mat_<bool>(srcImg.size());
+
+		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
+			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
+				dstImg(imgY, imgX) = find(target.begin(), target.end(), srcImg.at<Vec3b>(imgY, imgX)) != target.end();
+			}
+		}
+
+		return dstImg;
+	}
+
+	Mat _apply(Mat srcImg, const Mat_<bool>& targetFlagImg) {
 		auto dstImg = Mat(srcImg.size(), srcImg.type());
 
 		const int kernelCenterY = kernel.rows / 2;
 		const int kernelCenterX = kernel.cols / 2;
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgY, imgX)) != target.end())) {
+				if (targetFlagImg(imgY, imgX)) {
 					Vec3f dstImgPixel(0, 0, 0);
 					float weightSum = 0.0f;
 
@@ -215,7 +227,7 @@ public:
 							auto imgSampleX = clamp(imgX + kernelX - kernelCenterX, 0, srcImg.cols - 1);
 							auto weight = kernel.at<float>(kernelY, kernelX);
 
-							if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgSampleY, imgSampleX)) != target.end())) {
+							if (targetFlagImg(imgSampleY, imgSampleX)) {
 								auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
 								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
 								weightSum += weight;
@@ -236,7 +248,8 @@ public:
 		auto img = srcImg;
 
 		for (auto target : targets) {
-			img = _apply(img, target);
+			auto targetFlagImg = _createTargetFlagImg(img, target);
+			img = _apply(img, targetFlagImg);
 		}
 
 		return img;
