@@ -207,8 +207,7 @@ public:
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
 				if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgY, imgX)) != target.end())) {
 					Vec3f dstImgPixel(0, 0, 0);
-					int countAll = 0;
-					int countSelf = 0;
+					float weightSum = 0.0f;
 
 					for (int kernelY = 0; kernelY < kernel.rows; kernelY++) {
 						for (int kernelX = 0; kernelX < kernel.cols; kernelX++) {
@@ -219,29 +218,11 @@ public:
 							if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgSampleY, imgSampleX)) != target.end())) {
 								auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
 								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
+								weightSum += weight;
 							}
-							else if ((imgX != 0 && imgY != 0) && dstImg.at<Vec3b>(imgY - 1, imgX - 1) != srcImg.at<Vec3b>(imgY - 1, imgX - 1)) {
-								auto srcImgPixel = dstImg.at<Vec3b>(imgY - 1, imgX - 1);
-								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
-							}
-							else {
-								auto srcImgPixel = srcImg.at<Vec3b>(imgY, imgX);
-								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
-
-
-								countSelf++;
-							}
-
-							countAll++;
 						}
 					}
-
-					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel;
-				/*	if (imgX == 380 && imgY == 400) {
-						dstImg.at<Vec3b>(imgY, imgX) = Vec3b(0, 255, 0);
-
-						cout << static_cast<float>(countSelf) / countAll << endl;
-					}*/
+					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel / weightSum;
 				}
 				else {
 					dstImg.at<Vec3b>(imgY, imgX) = srcImg.at<Vec3b>(imgY, imgX);
