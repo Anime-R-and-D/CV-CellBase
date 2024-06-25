@@ -210,8 +210,9 @@ public:
 		return dstImg;
 	}
 
-	Mat _apply(Mat srcImg, const Mat_<bool>& targetFlagImg) {
-		auto dstImg = Mat(srcImg.size(), srcImg.type());
+	Mat _apply(Mat _srcImg, const Mat_<bool>& targetFlagImg) {
+		Mat_<Vec3f> srcImg = _srcImg;
+		auto dstImg = Mat(_srcImg.size(), _srcImg.type());
 
 		const int kernelCenterY = kernel.rows / 2;
 		const int kernelCenterX = kernel.cols / 2;
@@ -228,8 +229,8 @@ public:
 							auto weight = kernel.at<float>(kernelY, kernelX);
 
 							if (targetFlagImg(imgSampleY, imgSampleX)) {
-								auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
-								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
+								auto srcImgPixel = srcImg(imgSampleY, imgSampleX);
+								dstImgPixel += srcImgPixel * weight;
 								weightSum += weight;
 							}
 						}
@@ -237,7 +238,7 @@ public:
 					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel / weightSum;
 				}
 				else {
-					dstImg.at<Vec3b>(imgY, imgX) = srcImg.at<Vec3b>(imgY, imgX);
+					dstImg.at<Vec3b>(imgY, imgX) = _srcImg.at<Vec3b>(imgY, imgX);
 				}
 			}
 		}
