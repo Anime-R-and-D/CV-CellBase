@@ -193,10 +193,25 @@ public:
 
 class CellBlur : public Filter {
 public:
-	Mat_<float> kernel;
+	vector<float> kernel;
 	vector<vector<Vec3b>> targets;
 
-	CellBlur(float sigma, int size, vector<vector<Vec3b>> _targets) : kernel(::GaussianBlur(sigma, size).kernel), targets(_targets) {	}
+	CellBlur(float sigma, int size, vector<vector<Vec3b>> _targets) : kernel(), targets(_targets) {
+		float gauss_total = 0.0f;
+		int center = size / 2;
+
+		for (int i = 0; i < size; i++) {
+			int length = center - i;
+			float weight = exp(-static_cast<float>(length * length) / (2 * sigma * sigma));
+
+			kernel.push_back(weight);
+			gauss_total += weight;
+		}
+
+		for (int i = 0; i < size; i++) {
+			kernel[i] /= gauss_total;
+		}
+	}
 
 	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> target) {
 		auto dstImg = Mat_<bool>(srcImg.size());
@@ -212,36 +227,50 @@ public:
 
 	Mat _apply(Mat _srcImg, const Mat_<bool>& targetFlagImg) {
 		Mat_<Vec3f> srcImg = _srcImg;
-		auto dstImg = Mat(_srcImg.size(), _srcImg.type());
+		Mat_<Vec4f> dstImgY(_srcImg.size());
+		Mat dstImg(_srcImg.size(), _srcImg.type());
 
-		const int kernelCenterY = kernel.rows / 2;
-		const int kernelCenterX = kernel.cols / 2;
+		const int kernelSize = kernel.size();
+		const int kernelCenter = kernelSize / 2;
+
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
 				if (targetFlagImg(imgY, imgX)) {
-					Vec3f dstImgPixel(0, 0, 0);
-					float weightSum = 0.0f;
-
-					for (int kernelY = 0; kernelY < kernel.rows; kernelY++) {
-						for (int kernelX = 0; kernelX < kernel.cols; kernelX++) {
-							auto imgSampleY = clamp(imgY + kernelY - kernelCenterY, 0, srcImg.rows - 1);
-							auto imgSampleX = clamp(imgX + kernelX - kernelCenterX, 0, srcImg.cols - 1);
-							auto weight = kernel.at<float>(kernelY, kernelX);
-
-							if (targetFlagImg(imgSampleY, imgSampleX)) {
-								auto srcImgPixel = srcImg(imgSampleY, imgSampleX);
-								dstImgPixel += srcImgPixel * weight;
-								weightSum += weight;
-							}
+					Vec4f dstImgPixel(0, 0, 0, 0);
+					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
+						auto imgSampleX = clamp(imgX + kernelIdx - kernelCenter, 0, srcImg.cols - 1);
+						if (targetFlagImg(imgY, imgSampleX)) {
+							auto weight = kernel[kernelIdx];
+							auto srcImgPixel = srcImg(imgY, imgSampleX);
+							auto srcImgPixel_weighted = srcImgPixel * weight;
+							dstImgPixel += Vec4f(srcImgPixel_weighted[0], srcImgPixel_weighted[1], srcImgPixel_weighted[2], weight);
 						}
 					}
-					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel / weightSum;
-				}
-				else {
-					dstImg.at<Vec3b>(imgY, imgX) = _srcImg.at<Vec3b>(imgY, imgX);
+					dstImgY(imgY, imgX) = dstImgPixel;
 				}
 			}
 		}
+
+		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
+			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
+				if (targetFlagImg(imgY, imgX)) {
+					Vec4f dstImgPixel(0, 0, 0);
+					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
+						auto imgSampleY = clamp(imgY + kernelIdx - kernelCenter, 0, srcImg.rows - 1);
+						if (targetFlagImg(imgSampleY, imgX)) {
+							auto weight = kernel[kernelIdx];
+							auto srcImgPixel = dstImgY(imgSampleY, imgX);
+							dstImgPixel += srcImgPixel * weight;
+						}
+					}
+					dstImg.at<Vec3b>(imgY, imgX) = *reinterpret_cast<Vec3f*>(&dstImgPixel) / dstImgPixel[3];
+				}
+				else {
+					dstImg.at<Vec3b>(imgY, imgX) = srcImg(imgY, imgX);
+				}
+			}
+		}
+
 		return dstImg;
 	}
 
