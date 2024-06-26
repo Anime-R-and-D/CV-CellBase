@@ -233,9 +233,19 @@ public:
 		const int kernelSize = kernel.size();
 		const int kernelCenter = kernelSize / 2;
 
+		int startImgY = srcImg.rows - 1;
+		int startImgX = srcImg.cols - 1;
+		int endImgX = 0;
+		int endImgY = 0;
+
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
 				if (targetFlagImg(imgY, imgX)) {
+					startImgY = min(startImgY, imgY);
+					startImgX = min(startImgX, imgX);
+					endImgY = max(endImgY, imgY);
+					endImgX = max(endImgX, imgX);
+
 					Vec4f dstImgPixel(0, 0, 0, 0);
 					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
 						auto imgSampleX = clamp(imgX + kernelIdx - kernelCenter, 0, srcImg.cols - 1);
@@ -253,8 +263,8 @@ public:
 
 		auto& dstImg = srcImg;
 
-		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
-			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
+		for (int imgY = startImgY; imgY <= endImgY; imgY++) {
+			for (int imgX = startImgX; imgX <= endImgX; imgX++) {
 				if (targetFlagImg(imgY, imgX)) {
 					Vec4f dstImgPixel(0, 0, 0);
 					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
