@@ -377,6 +377,103 @@ public:
 	}
 
 
+
+	//Vec3b(255, 255, 255)
+	Mat applyChokeY(Mat img, double chokeMatte) {
+		
+		auto dstImg = Mat(img.size(), img.type());
+		for (int imgX = 0; imgX < img.cols - 1; imgX++) {
+			for (int imgY = 0; imgY < img.rows - 1; imgY++) {
+
+				int altered = 0;
+				if (img.at<Vec3b>(imgY, imgX) != Vec3b(255, 255, 255)) {
+					if (imgY!=0 && img.at<Vec3b>(imgY - 1, imgX) == Vec3b(255, 255, 255)) {
+						altered++;
+						for (int k = 0; k < chokeMatte; k++) {
+							if (imgY + k > img.rows - 1) {
+								dstImg.at<Vec3b>(img.rows-1, imgX) = Vec3b(255, 255, 255);
+							}
+							else {
+								dstImg.at<Vec3b>(imgY + k, imgX) = Vec3b(255, 255, 255);
+							}
+						}
+						imgY += chokeMatte;
+					}
+					else if (img.at<Vec3b>(imgY + 1, imgX) == Vec3b(255, 255, 255)) {
+						altered++;
+						for (int k = 0; k < chokeMatte; k++) {
+							if (imgY - k < 0) {
+								dstImg.at<Vec3b>(0, imgX) = Vec3b(255, 255, 255);
+							}
+							else {
+								dstImg.at<Vec3b>(imgY - k, imgX) = Vec3b(255, 255, 255);
+							}
+						}
+					}
+
+					if (altered == 0) {
+						dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+					}
+				}
+
+				else {
+					dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+				}
+			}
+		}
+		return dstImg;
+	}
+
+	Mat applyChoke(Mat img, double chokeMatte1) {
+		int chokeMatte = chokeMatte1 / 2;
+		auto dstImg = Mat(img.size(), img.type());
+		for (int imgY = 0; imgY < img.rows-1; imgY++) {
+			for (int imgX = 0; imgX < img.cols-1; imgX++) {
+				int altered = 0;
+				if (img.at<Vec3b>(imgY, imgX) != Vec3b(255, 255, 255)) {
+					if (img.at<Vec3b>(imgY, imgX - 1) == Vec3b(255, 255, 255)) {
+						altered++;
+						for (int k = 0; k < chokeMatte; k++) {
+							if (imgX + k > img.cols-1) {
+								dstImg.at<Vec3b>(imgY, img.cols-1) = Vec3b(255, 255, 255);
+							}
+							else {
+								dstImg.at<Vec3b>(imgY, imgX + k) = Vec3b(255, 255, 255);
+							}
+						}
+						imgX += chokeMatte;
+					}
+					else if (img.at<Vec3b>(imgY, imgX + 1) == Vec3b(255, 255, 255)) {
+						altered++;
+						for (int k = 0; k < chokeMatte; k++) {
+							if (imgX - k < img.cols) {
+								dstImg.at<Vec3b>(imgY, img.cols) = Vec3b(255, 255, 255);
+							}
+							else {
+								dstImg.at<Vec3b>(imgY, imgX - k) = Vec3b(255, 255, 255);
+							}
+						}
+
+					}
+
+					if (altered == 0) {
+						dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+					}
+				}
+				else {
+					dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+				}
+
+			}
+			
+		}
+		return applyChokeY(dstImg, chokeMatte);
+	}
+
+
+
+	
+
 	Mat applyLayersWithAlpha(Mat bg, Mat fg, double alpha) {
 		if (alpha > 1) {
 			alpha == 1;

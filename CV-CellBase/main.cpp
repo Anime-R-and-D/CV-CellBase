@@ -118,7 +118,18 @@ int main()
 		throw "No image found! " + imagePath;
 	}
 	cv::imshow("Source", srcImage);
+	Mat line = applyFilters(
+		srcImage, {
+			make_shared<LineOnly>(),
+			make_shared<AveragingBlur>(2,2),
+			
+		});
 
+	Mat newImg = applyChoke(line, 10);
+	//newImg = applyChoke(newImg, 3);
+	
+	cv::imshow("LineOnly", line);
+	cv::imshow("Choke", newImg);
 	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
 	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
 	// imshow("SobelX", SobelX().apply(srcImage));
@@ -126,7 +137,7 @@ int main()
 	// imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
 
 	// imshow("CharacterCellProcessing", characterCellProcessing(srcImage));
-	characterCellProcessingMovie("movie_test/*.png", "results.avi");
+	//characterCellProcessingMovie("movie_test/*.png", "results.avi");
 
 	// auto chalkImage = chalkFilter(srcImage);
 	// imshow("ChalkFilter", chalkImage);
