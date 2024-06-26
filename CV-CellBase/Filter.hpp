@@ -213,39 +213,49 @@ public:
 		}
 	}
 
-	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> target) {
+	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY) {
 		auto dstImg = Mat_<bool>(srcImg.size());
 
 		const auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
 		auto dstData = reinterpret_cast<bool*>(dstImg.data);
 		int size = srcImg.rows * srcImg.cols;
 
-		for (int i = 0; i < size; i++) {
-			dstData[i] = find(target.begin(), target.end(), srcData[i]) != target.end();
-		}
-
-		return dstImg;
-	}
-
-	Mat_<Vec3f> _apply(Mat_<Vec3f>& srcImg, const Mat_<bool>& targetFlagImg) {
-		Mat_<Vec4f> dstImgY(srcImg.size());
-
-		const int kernelSize = kernel.size();
-		const int kernelCenter = kernelSize / 2;
-
-		int startImgY = srcImg.rows - 1;
+		int i = 0;
 		int startImgX = srcImg.cols - 1;
+		int startImgY = srcImg.rows - 1;
 		int endImgX = 0;
 		int endImgY = 0;
 
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				if (targetFlagImg(imgY, imgX)) {
-					startImgY = min(startImgY, imgY);
+				dstData[i] = find(target.begin(), target.end(), srcData[i]) != target.end();
+				if(dstData[i]){
 					startImgX = min(startImgX, imgX);
-					endImgY = max(endImgY, imgY);
+					startImgY = min(startImgY, imgY);
 					endImgX = max(endImgX, imgX);
+					endImgY = max(endImgY, imgY);
+				}
+				i++;
+			}
+		}
 
+		*_startImgX = startImgX;
+		*_startImgY = startImgY;
+		*_endImgX = endImgX;
+		*_endImgY = endImgY;
+
+		return dstImg;
+	}
+
+	Mat_<Vec3f> _apply(Mat_<Vec3f>& srcImg, const Mat_<bool>& targetFlagImg, int startImgX, int startImgY, int endImgX, int endImgY) {
+		Mat_<Vec4f> dstImgY(srcImg.size());
+
+		const int kernelSize = kernel.size();
+		const int kernelCenter = kernelSize / 2;
+
+		for (int imgY = startImgY; imgY <= endImgY; imgY++) {
+			for (int imgX = startImgX; imgX < endImgX; imgX++) {
+				if (targetFlagImg(imgY, imgX)) {
 					Vec4f dstImgPixel(0, 0, 0, 0);
 					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
 						auto imgSampleX = clamp(imgX + kernelIdx - kernelCenter, 0, srcImg.cols - 1);
@@ -287,8 +297,9 @@ public:
 		Mat_<Vec3f> img = srcImg;
 
 		for (auto target : targets) {
-			auto targetFlagImg = _createTargetFlagImg(srcImg, target);
-			img = _apply(img, targetFlagImg);
+			int startImgX, startImgY, imgEndX, imgEndY;
+			auto targetFlagImg = _createTargetFlagImg(srcImg, target, &startImgX, &startImgY, &imgEndX, &imgEndY);
+			img = _apply(img, targetFlagImg, startImgX, startImgY, imgEndX, imgEndY);
 		}
 
 		Mat_<Vec3b> dstImg = img;
