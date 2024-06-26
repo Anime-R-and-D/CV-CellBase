@@ -216,10 +216,12 @@ public:
 	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> target) {
 		auto dstImg = Mat_<bool>(srcImg.size());
 
-		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
-			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				dstImg(imgY, imgX) = find(target.begin(), target.end(), srcImg.at<Vec3b>(imgY, imgX)) != target.end();
-			}
+		const auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
+		auto dstData = reinterpret_cast<bool*>(dstImg.data);
+		int size = srcImg.rows * srcImg.cols;
+
+		for (int i = 0; i < size; i++) {
+			dstData[i] = find(target.begin(), target.end(), srcData[i]) != target.end();
 		}
 
 		return dstImg;
