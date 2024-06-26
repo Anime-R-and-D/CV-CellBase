@@ -225,10 +225,8 @@ public:
 		return dstImg;
 	}
 
-	Mat _apply(Mat _srcImg, const Mat_<bool>& targetFlagImg) {
-		Mat_<Vec3f> srcImg = _srcImg;
-		Mat_<Vec4f> dstImgY(_srcImg.size());
-		Mat dstImg(_srcImg.size(), _srcImg.type());
+	Mat_<Vec3f> _apply(Mat_<Vec3f>& srcImg, const Mat_<bool>& targetFlagImg) {
+		Mat_<Vec4f> dstImgY(srcImg.size());
 
 		const int kernelSize = kernel.size();
 		const int kernelCenter = kernelSize / 2;
@@ -251,6 +249,8 @@ public:
 			}
 		}
 
+		auto& dstImg = srcImg;
+
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
 				if (targetFlagImg(imgY, imgX)) {
@@ -263,10 +263,7 @@ public:
 							dstImgPixel += srcImgPixel * weight;
 						}
 					}
-					dstImg.at<Vec3b>(imgY, imgX) = *reinterpret_cast<Vec3f*>(&dstImgPixel) / dstImgPixel[3];
-				}
-				else {
-					dstImg.at<Vec3b>(imgY, imgX) = srcImg(imgY, imgX);
+					dstImg(imgY, imgX) = *reinterpret_cast<Vec3f*>(&dstImgPixel) / dstImgPixel[3];
 				}
 			}
 		}
@@ -275,14 +272,15 @@ public:
 	}
 
 	Mat apply(Mat srcImg) {
-		auto img = srcImg;
+		Mat_<Vec3f> img = srcImg;
 
 		for (auto target : targets) {
-			auto targetFlagImg = _createTargetFlagImg(img, target);
+			auto targetFlagImg = _createTargetFlagImg(srcImg, target);
 			img = _apply(img, targetFlagImg);
 		}
 
-		return img;
+		Mat_<Vec3b> dstImg = img;
+		return dstImg;
 	}
 };
 
