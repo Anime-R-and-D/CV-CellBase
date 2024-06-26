@@ -213,7 +213,7 @@ public:
 		}
 	}
 
-	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY) {
+	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> _target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY) {
 		auto dstImg = Mat_<bool>(srcImg.size());
 
 		const auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
@@ -225,11 +225,20 @@ public:
 		int startImgY = srcImg.rows - 1;
 		int endImgX = 0;
 		int endImgY = 0;
+		constexpr std::int_fast32_t _256 = 256;
+
+		set<std::int_fast32_t> target;
+		for (int i = 0; i < _target.size(); i++) {
+			target.insert(_target[i][0] + _target[i][1] * _256 + _target[i][2] * _256 * _256);
+		}
 
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				dstData[i] = find(target.begin(), target.end(), srcData[i]) != target.end();
-				if(dstData[i]){
+				auto srcPixelVec8b = srcData[i];
+				std::int_fast32_t srcPixel = srcPixelVec8b[0] + srcPixelVec8b[1] * _256 + srcPixelVec8b[2] * _256 * _256;
+				auto isTarget = target.contains(srcPixel);
+				if (isTarget) {
+					dstData[i] = true;
 					startImgX = min(startImgX, imgX);
 					startImgY = min(startImgY, imgY);
 					endImgX = max(endImgX, imgX);
