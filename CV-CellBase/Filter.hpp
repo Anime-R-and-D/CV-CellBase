@@ -191,6 +191,8 @@ public:
 	}
 };
 
+constexpr std::int_fast32_t _256 = 256;
+
 class CellBlur : public Filter {
 public:
 	vector<float> kernel;
@@ -213,14 +215,61 @@ public:
 		}
 	}
 
-	Mat_<bool> _createTargetFlagImg(Mat srcImg, vector<Vec3b> _target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY) {
-		auto dstImg = Mat_<bool>(srcImg.size());
+	Mat_<int_fast32_t> convertToIntImg(const Mat& srcImg) {
+		Mat_<int_fast32_t> iSrcImg(srcImg.size());
 
-		const auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
-		auto dstData = reinterpret_cast<bool*>(dstImg.data);
 		int size = srcImg.rows * srcImg.cols;
 
-		constexpr std::int_fast32_t _256 = 256;
+		auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
+		auto iSrcData = reinterpret_cast<int_fast32_t*>(iSrcImg.data);
+
+		for (int i = 0; i < size; i++) {
+			iSrcData[i] = srcData[i][0] + srcData[i][1] * _256 + srcData[i][2] * _256 * _256;
+		}
+
+		return iSrcImg;
+	}
+
+	void findNotWhiteCorners(const Mat_<int_fast32_t>& srcImg, int* _startNotWhiteX, int* _startNotWhiteY, int* _endNotWhiteX, int* _endNotWhiteY) {
+		const int size = srcImg.rows * srcImg.cols;
+		const int white = 255 + 255 * _256 + 255 * _256 * _256;
+
+		int startNotWhiteX = srcImg.cols - 1;
+		int startNotWhiteY = srcImg.rows - 1;
+		int endNotWhiteX = 0;
+		int endNotWhiteY = 0;
+
+		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
+			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
+				if (srcImg(imgY, imgX) != white) {
+					startNotWhiteX = min(startNotWhiteX, imgX);
+					startNotWhiteY = min(startNotWhiteY, imgY);
+					endNotWhiteX = max(endNotWhiteX, imgX);
+					endNotWhiteY = max(endNotWhiteY, imgY);
+				}
+			}
+		}
+
+		*_startNotWhiteX = startNotWhiteX;
+		*_startNotWhiteY = startNotWhiteY;
+		*_endNotWhiteX = endNotWhiteX;
+		*_endNotWhiteY = endNotWhiteY;
+	}
+
+	Mat_<bool> _createTargetFlagImg(Mat_<int_fast32_t> srcImg, vector<Vec3b> _target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY, int startNotWhiteX, int startNotWhiteY, int endNotWhiteX, int endNotWhiteY) {
+		auto dstImg = Mat_<bool>(srcImg.size());
+
+		bool inWhite = std::find(_target.begin(), _target.end(), Vec3b(255, 255, 255)) != _target.end();
+		if (inWhite == true) {
+			startNotWhiteX = 0;
+			startNotWhiteY = 0;
+			endNotWhiteX = srcImg.cols - 1;
+			endNotWhiteY = srcImg.rows - 1;
+		}
+
+		const auto srcData = reinterpret_cast<int_fast32_t*>(srcImg.data);
+		auto dstData = reinterpret_cast<bool*>(dstImg.data);
+		int size = srcImg.rows * srcImg.cols;
 
 		vector<std::int_fast32_t> target;
 		for (int i = 0; i < _target.size(); i++) {
@@ -229,16 +278,15 @@ public:
 		target.push_back(-1);
 		sort(target.rbegin(), target.rend());
 
-		int i = 0;
 		int startImgX = srcImg.cols - 1;
 		int startImgY = srcImg.rows - 1;
 		int endImgX = 0;
 		int endImgY = 0;
 
-		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
-			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				auto srcPixelVec8b = srcData[i];
-				std::int_fast32_t srcPixel = srcPixelVec8b[0] + srcPixelVec8b[1] * _256 + srcPixelVec8b[2] * _256 * _256;
+		for (int imgY = startNotWhiteY; imgY <= endNotWhiteY; imgY++) {
+			int i = imgY * srcImg.cols + startNotWhiteX;
+			for (int imgX = startNotWhiteX; imgX <= endNotWhiteX; imgX++) {
+				auto srcPixel = srcData[i];
 
 				bool isTarget = false;
 				for (int i = 0; srcPixel <= target[i]; i++) {
@@ -313,11 +361,15 @@ public:
 	}
 
 	Mat apply(Mat srcImg) {
+		auto iSrcImg = convertToIntImg(srcImg);
 		Mat_<Vec3f> img = srcImg;
+
+		int startNotWhiteX, startNotWhiteY, endNotWhiteX, endNotWhiteY;
+		findNotWhiteCorners(iSrcImg, &startNotWhiteX, &startNotWhiteY, &endNotWhiteX, &endNotWhiteY);
 
 		for (auto target : targets) {
 			int startImgX, startImgY, imgEndX, imgEndY;
-			auto targetFlagImg = _createTargetFlagImg(srcImg, target, &startImgX, &startImgY, &imgEndX, &imgEndY);
+			auto targetFlagImg = _createTargetFlagImg(iSrcImg, target, &startImgX, &startImgY, &imgEndX, &imgEndY, startNotWhiteX, startNotWhiteY, endNotWhiteX, endNotWhiteY);
 			img = _apply(img, targetFlagImg, startImgX, startImgY, imgEndX, imgEndY);
 		}
 
@@ -327,7 +379,6 @@ public:
 };
 
 class LineOnly : public Filter {
-
 	Mat apply(Mat srcImg) {
 		auto dstImg = Mat(srcImg.size(), srcImg.type());
 		for (int imgY = 1; imgY < srcImg.rows - 1; imgY++) {
