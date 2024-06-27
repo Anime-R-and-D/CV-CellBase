@@ -220,23 +220,33 @@ public:
 		auto dstData = reinterpret_cast<bool*>(dstImg.data);
 		int size = srcImg.rows * srcImg.cols;
 
+		constexpr std::int_fast32_t _256 = 256;
+
+		vector<std::int_fast32_t> target;
+		for (int i = 0; i < _target.size(); i++) {
+			target.push_back(_target[i][0] + _target[i][1] * _256 + _target[i][2] * _256 * _256);
+		}
+		target.push_back(-1);
+		sort(target.rbegin(), target.rend());
+
 		int i = 0;
 		int startImgX = srcImg.cols - 1;
 		int startImgY = srcImg.rows - 1;
 		int endImgX = 0;
 		int endImgY = 0;
-		constexpr std::int_fast32_t _256 = 256;
-
-		set<std::int_fast32_t> target;
-		for (int i = 0; i < _target.size(); i++) {
-			target.insert(_target[i][0] + _target[i][1] * _256 + _target[i][2] * _256 * _256);
-		}
 
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
 				auto srcPixelVec8b = srcData[i];
 				std::int_fast32_t srcPixel = srcPixelVec8b[0] + srcPixelVec8b[1] * _256 + srcPixelVec8b[2] * _256 * _256;
-				auto isTarget = target.contains(srcPixel);
+
+				bool isTarget = false;
+				for (int i = 0; srcPixel <= target[i]; i++) {
+					if (target[i] == srcPixel) {
+						isTarget = true;
+					}
+				}
+
 				if (isTarget) {
 					dstData[i] = true;
 					startImgX = min(startImgX, imgX);
