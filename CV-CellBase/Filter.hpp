@@ -215,33 +215,27 @@ public:
 		}
 	}
 
-	Mat_<int_fast32_t> convertToIntImg(const Mat& srcImg) {
+	Mat_<int_fast32_t> convertToIntImg(const Mat& srcImg, int* _startNotWhiteX, int* _startNotWhiteY, int* _endNotWhiteX, int* _endNotWhiteY) {
 		Mat_<int_fast32_t> iSrcImg(srcImg.size());
 
-		int size = srcImg.rows * srcImg.cols;
+		const int size = srcImg.rows * srcImg.cols;
+		constexpr int_fast32_t white = 255 + 255 * _256 + 255 * _256 * _256;
 
 		auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
 		auto iSrcData = reinterpret_cast<int_fast32_t*>(iSrcImg.data);
-
-		for (int i = 0; i < size; i++) {
-			iSrcData[i] = srcData[i][0] + srcData[i][1] * _256 + srcData[i][2] * _256 * _256;
-		}
-
-		return iSrcImg;
-	}
-
-	void findNotWhiteCorners(const Mat_<int_fast32_t>& srcImg, int* _startNotWhiteX, int* _startNotWhiteY, int* _endNotWhiteX, int* _endNotWhiteY) {
-		const int size = srcImg.rows * srcImg.cols;
-		const int white = 255 + 255 * _256 + 255 * _256 * _256;
 
 		int startNotWhiteX = srcImg.cols - 1;
 		int startNotWhiteY = srcImg.rows - 1;
 		int endNotWhiteX = 0;
 		int endNotWhiteY = 0;
 
+		int i = 0;
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				if (srcImg(imgY, imgX) != white) {
+				auto iSrcPixel = srcData[i][0] + srcData[i][1] * _256 + srcData[i][2] * _256 * _256;
+				iSrcData[i] = iSrcPixel;
+				i++;
+				if (iSrcPixel != white) {
 					startNotWhiteX = min(startNotWhiteX, imgX);
 					startNotWhiteY = min(startNotWhiteY, imgY);
 					endNotWhiteX = max(endNotWhiteX, imgX);
@@ -254,6 +248,8 @@ public:
 		*_startNotWhiteY = startNotWhiteY;
 		*_endNotWhiteX = endNotWhiteX;
 		*_endNotWhiteY = endNotWhiteY;
+
+		return iSrcImg;
 	}
 
 	Mat_<bool> _createTargetFlagImg(Mat_<int_fast32_t> srcImg, vector<Vec3b> _target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY, int startNotWhiteX, int startNotWhiteY, int endNotWhiteX, int endNotWhiteY) {
@@ -361,11 +357,11 @@ public:
 	}
 
 	Mat apply(Mat srcImg) {
-		auto iSrcImg = convertToIntImg(srcImg);
+		int startNotWhiteX, startNotWhiteY, endNotWhiteX, endNotWhiteY;
+		auto iSrcImg = convertToIntImg(srcImg, &startNotWhiteX, &startNotWhiteY, &endNotWhiteX, &endNotWhiteY);
+
 		Mat_<Vec3f> img = srcImg;
 
-		int startNotWhiteX, startNotWhiteY, endNotWhiteX, endNotWhiteY;
-		findNotWhiteCorners(iSrcImg, &startNotWhiteX, &startNotWhiteY, &endNotWhiteX, &endNotWhiteY);
 
 		for (auto target : targets) {
 			int startImgX, startImgY, imgEndX, imgEndY;
