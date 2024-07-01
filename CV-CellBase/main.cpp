@@ -100,6 +100,21 @@ Mat chalkFilter(Mat srcImage) {
 	return noisedGrayLine & mask;
 }
 
+void chokedLine(Mat srcImage) {
+	auto line = applyFilters(
+		srcImage, {
+			make_shared<LineOnly>(),
+			make_shared<AveragingBlur>(2,2),
+		});
+	cv::imshow("LineOnly", line);
+
+	auto chokedLine = applyFilters(
+		line, {
+			make_shared<Choke>(10),
+		});
+	cv::imshow("Choke", chokedLine);
+}
+
 static void onMouse(int event, int x, int y, int f, void* param) {
 	if (event == EVENT_LBUTTONDOWN)
 	{
@@ -118,18 +133,7 @@ int main()
 		throw "No image found! " + imagePath;
 	}
 	cv::imshow("Source", srcImage);
-	Mat line = applyFilters(
-		srcImage, {
-			make_shared<LineOnly>(),
-			make_shared<AveragingBlur>(2,2),
-			
-		});
 
-	Mat newImg = applyChoke(line, 10);
-	//newImg = applyChoke(newImg, 3);
-	
-	cv::imshow("LineOnly", line);
-	cv::imshow("Choke", newImg);
 	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
 	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
 	// imshow("SobelX", SobelX().apply(srcImage));
@@ -144,6 +148,8 @@ int main()
 	// auto charImagePtr = static_cast<void*>(&chalkImage);
 	// setMouseCallback("ChalkFilter", onMouse, (charImagePtr));
 
-	cv::waitKey(0);
+	chokedLine(srcImage);
+
+	 cv::waitKey(0);
 	return 0;
 }

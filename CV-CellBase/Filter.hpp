@@ -377,21 +377,26 @@ public:
 	}
 
 
+class Choke : public Filter {
+public:
+	double chokeMatte1;
 
-	//Vec3b(255, 255, 255)
+	Choke(double _chokeMatte1) : chokeMatte1(_chokeMatte1) {}
+
+private:
 	Mat applyChokeY(Mat img, double chokeMatte) {
-		
 		auto dstImg = Mat(img.size(), img.type());
+
 		for (int imgX = 0; imgX < img.cols - 1; imgX++) {
 			for (int imgY = 0; imgY < img.rows - 1; imgY++) {
 
 				int altered = 0;
 				if (img.at<Vec3b>(imgY, imgX) != Vec3b(255, 255, 255)) {
-					if (imgY!=0 && img.at<Vec3b>(imgY - 1, imgX) == Vec3b(255, 255, 255)) {
+					if (imgY != 0 && img.at<Vec3b>(imgY - 1, imgX) == Vec3b(255, 255, 255)) {
 						altered++;
 						for (int k = 0; k < chokeMatte; k++) {
 							if (imgY + k > img.rows - 1) {
-								dstImg.at<Vec3b>(img.rows-1, imgX) = Vec3b(255, 255, 255);
+								dstImg.at<Vec3b>(img.rows - 1, imgX) = Vec3b(255, 255, 255);
 							}
 							else {
 								dstImg.at<Vec3b>(imgY + k, imgX) = Vec3b(255, 255, 255);
@@ -421,21 +426,22 @@ public:
 				}
 			}
 		}
+
 		return dstImg;
 	}
 
-	Mat applyChoke(Mat img, double chokeMatte1) {
-		int chokeMatte = chokeMatte1 / 2;
+	Mat applyChokeX(Mat img, double chokeMatte) {
 		auto dstImg = Mat(img.size(), img.type());
-		for (int imgY = 0; imgY < img.rows-1; imgY++) {
-			for (int imgX = 0; imgX < img.cols-1; imgX++) {
+
+		for (int imgY = 0; imgY < img.rows - 1; imgY++) {
+			for (int imgX = 0; imgX < img.cols - 1; imgX++) {
 				int altered = 0;
 				if (img.at<Vec3b>(imgY, imgX) != Vec3b(255, 255, 255)) {
 					if (img.at<Vec3b>(imgY, imgX - 1) == Vec3b(255, 255, 255)) {
 						altered++;
 						for (int k = 0; k < chokeMatte; k++) {
-							if (imgX + k > img.cols-1) {
-								dstImg.at<Vec3b>(imgY, img.cols-1) = Vec3b(255, 255, 255);
+							if (imgX + k > img.cols - 1) {
+								dstImg.at<Vec3b>(imgY, img.cols - 1) = Vec3b(255, 255, 255);
 							}
 							else {
 								dstImg.at<Vec3b>(imgY, imgX + k) = Vec3b(255, 255, 255);
@@ -463,16 +469,19 @@ public:
 				else {
 					dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
 				}
-
 			}
-			
 		}
-		return applyChokeY(dstImg, chokeMatte);
+
+		return dstImg;
 	}
 
-
-
-	
+public:
+	Mat apply(Mat img) {
+		int chokeMatte = chokeMatte1 / 2;
+		auto chokedXImg = applyChokeX(img, chokeMatte);
+		return applyChokeY(chokedXImg, chokeMatte);
+	}
+};
 
 	Mat applyLayersWithAlpha(Mat bg, Mat fg, double alpha) {
 		if (alpha > 1) {
