@@ -1,4 +1,11 @@
 #include "Filter.hpp"
+#include "CellBlur.hpp"
+
+#ifdef _DEBUG
+#pragma comment (lib, "opencv_world4100d.lib")
+#else
+#pragma comment (lib, "opencv_world4100.lib")
+#endif
 
 Mat characterCellProcessing(Mat srcImg) {
 	vector clothesColors = {
@@ -150,6 +157,6 @@ int main()
 
 	chokedLine(srcImage);
 
-	 cv::waitKey(0);
+	cv::waitKey(0);
 	return 0;
 }
