@@ -7,68 +7,68 @@
 #pragma comment (lib, "opencv_world4100.lib")
 #endif
 
-Mat characterCellProcessing(Mat srcImg) {
-	vector clothesColors = {
-		Vec3b(111, 105, 161),
-		Vec3b(144, 160, 130),
-		Vec3b(163, 168, 165),
-		Vec3b(150, 155, 156),
+cv::Mat characterCellProcessing(cv::Mat srcImg) {
+	std::vector clothesColors = {
+		cv::Vec3b(111, 105, 161),
+		cv::Vec3b(144, 160, 130),
+		cv::Vec3b(163, 168, 165),
+		cv::Vec3b(150, 155, 156),
 	};
 
-	vector hairColors1 = {
-		Vec3b(41, 38, 40),
-		Vec3b(97, 57, 70)
+	std::vector hairColors1 = {
+		cv::Vec3b(41, 38, 40),
+		cv::Vec3b(97, 57, 70)
 	};
 
-	vector hairColors2 = {
-		Vec3b(2, 2, 1),
-		Vec3b(44, 17, 10)
+	std::vector hairColors2 = {
+		cv::Vec3b(2, 2, 1),
+		cv::Vec3b(44, 17, 10)
 	};
 
-	vector eyeColors = {
-		Vec3b(28, 9, 11),
-		Vec3b(112, 72, 87)
+	std::vector eyeColors = {
+		cv::Vec3b(28, 9, 11),
+		cv::Vec3b(112, 72, 87)
 	};
 
-	vector targetColorsList = { clothesColors, hairColors1, hairColors2, eyeColors };
+	std::vector targetColorsList = { clothesColors, hairColors1, hairColors2, eyeColors };
 
-	Mat layer_1 = applyFilters(
+	cv::Mat layer_1 = applyFilters(
 		srcImg, {
-			make_shared<::CellBlur>(20.0f, 21, targetColorsList),
+			std::make_shared<::CellBlur>(20.0f, 21, targetColorsList),
 		});
 
-	Mat layer_2 = applyFilters(
+	cv::Mat layer_2 = applyFilters(
 		srcImg, {
-			make_shared<::CellBlur>(20.0f, 21, targetColorsList),
-			make_shared<LineRemover>(Vec3b(4,2,10), Vec3b(255,255,255), 100),
+			std::make_shared<::CellBlur>(20.0f, 21, targetColorsList),
+			std::make_shared<LineRemover>(cv::Vec3b(4,2,10), cv::Vec3b(255,255,255), 100),
 		});
 
-	Mat layer_3 = applyFilters(
+	cv::Mat layer_3 = applyFilters(
 		srcImg, {
-			make_shared<LineOnly>(),
+			std::make_shared<LineOnly>(),
 		});
 
-	Mat layer_1_2 = applyLayersWithAlpha(layer_1, layer_2, 0.7);
-	Mat layer_1_2_3 = applyLayersWithAlpha(layer_1_2, layer_3, 0.3);
+	cv::Mat layer_1_2 = applyLayersWithAlpha(layer_1, layer_2, 0.7);
+	cv::Mat layer_1_2_3 = applyLayersWithAlpha(layer_1_2, layer_3, 0.3);
 
 	return layer_1_2_3;
 }
 
-void characterCellProcessingMovie(const string& srcImgsPathPattern, const string& dstMoviePath) {
-	vector<cv::String> srcImgPaths;
-	vector<Mat> dstImgs;
+void characterCellProcessingMovie(const std::string& srcImgsPathPattern, const std::string& dstMoviePath) {
+	std::vector<cv::String> srcImgPaths;
+	std::vector<cv::Mat> dstImgs;
 	cv::glob(srcImgsPathPattern, srcImgPaths, true);
 
-	for (const string& srcImgPath : srcImgPaths) {
-		Mat srcImg = imread(srcImgPath);
+	for (const std::string& srcImgPath : srcImgPaths) {
+		cv::Mat srcImg = cv::imread(srcImgPath);
 		if (srcImg.empty()) {
 			throw "No image found! " + srcImgPath;
 		}
 
-		Mat dstImg = characterCellProcessing(srcImg);
+		cv::Mat dstImg = characterCellProcessing(srcImg);
 		dstImgs.push_back(dstImg);
 		imshow("CharacterCellProcessingMovie", dstImg);
-		waitKey(1);
+		cv::waitKey(1);
 	}
 
 	int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
@@ -77,83 +77,83 @@ void characterCellProcessingMovie(const string& srcImgsPathPattern, const string
 		throw "writer not opened: " + dstMoviePath;
 	}
 
-	for (const Mat& dstImg : dstImgs) {
+	for (const cv::Mat& dstImg : dstImgs) {
 		writer.write(dstImg);
 	}
 
 	writer.release();
 }
 
-Mat chalkFilter(Mat srcImage) {
+cv::Mat chalkFilter(cv::Mat srcImage) {
 	auto colorLine = applyFilters(
 		srcImage, {
-			make_shared<::SobelAbsXY>(),
-			make_shared<::GaussianBlur>(2.0f, 3),
+			std::make_shared<::SobelAbsXY>(),
+			std::make_shared<::GaussianBlur>(2.0f, 3),
 		});
 
-	Mat grayLine;
-	cvtColor(colorLine, grayLine, COLOR_BGR2GRAY);
-	Mat mask = grayLine != 0;
+	cv::Mat grayLine;
+	cvtColor(colorLine, grayLine, cv::COLOR_BGR2GRAY);
+	cv::Mat mask = grayLine != 0;
 
 	cv::Mat noise(colorLine.size(), colorLine.type());
 	cv::randn(noise, 300, 200);
 
-	Mat_<Vec3i> iNoisedColorLine = static_cast<Mat_<Vec3i>>(colorLine) + static_cast<Mat_<Vec3i>>(noise);
-	Mat_<Vec3b> bNoisedColorLine = iNoisedColorLine & Vec3i(255, 255, 255);
+	cv::Mat_<cv::Vec3i> iNoisedColorLine = static_cast<cv::Mat_<cv::Vec3i>>(colorLine) + static_cast<cv::Mat_<cv::Vec3i>>(noise);
+	cv::Mat_<cv::Vec3b> bNoisedColorLine = iNoisedColorLine & cv::Vec3i(255, 255, 255);
 
-	Mat noisedGrayLine;
-	cvtColor(bNoisedColorLine, noisedGrayLine, COLOR_BGR2GRAY);
+	cv::Mat noisedGrayLine;
+	cvtColor(bNoisedColorLine, noisedGrayLine, cv::COLOR_BGR2GRAY);
 
 	return noisedGrayLine & mask;
 }
 
-void chokedLine(Mat srcImage) {
+void chokedLine(cv::Mat srcImage) {
 	auto line = applyFilters(
 		srcImage, {
-			make_shared<LineOnly>(),
-			make_shared<AveragingBlur>(2,2),
+			std::make_shared<LineOnly>(),
+			std::make_shared<AveragingBlur>(2,2),
 		});
 	cv::imshow("LineOnly", line);
 
 	auto chokedLine = applyFilters(
 		line, {
-			make_shared<Choke>(10),
+			std::make_shared<Choke>(10),
 		});
 	cv::imshow("Choke", chokedLine);
 }
 
 static void onMouse(int event, int x, int y, int f, void* param) {
-	if (event == EVENT_LBUTTONDOWN)
+	if (event == cv::EVENT_LBUTTONDOWN)
 	{
-		auto image = static_cast<Mat*>(param);
+		auto image = static_cast<cv::Mat*>(param);
 		auto pixel = image->at<uchar>(y, x);
-		cout << static_cast<int>(pixel) << endl;
+		std::cout << static_cast<int>(pixel) << std::endl;
 	}
 }
 
 int main()
 {
-	string imagePath = "src.png";
-	Mat srcImage = imread(imagePath);
+	std::string imagePath = "src.png";
+	cv::Mat srcImage = cv::imread(imagePath);
 	if (srcImage.data == NULL)
 	{
 		throw "No image found! " + imagePath;
 	}
 	cv::imshow("Source", srcImage);
 
-	// imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
-	// imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
-	// imshow("SobelX", SobelX().apply(srcImage));
-	// imshow("SobelY", SobelY().apply(srcImage));
-	// imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
+	// cv::imshow("AveragingBlur", AveragingBlur(3, 3).apply(srcImage));
+	// cv::imshow("GaussianBlur", ::GaussianBlur(2.0f, 5).apply(srcImage));
+	// cv::imshow("SobelX", SobelX().apply(srcImage));
+	// cv::imshow("SobelY", SobelY().apply(srcImage));
+	// cv::imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
 
-	// imshow("CharacterCellProcessing", characterCellProcessing(srcImage));
-	//characterCellProcessingMovie("movie_test/*.png", "results.avi");
+	// cv::imshow("CharacterCellProcessing", characterCellProcessing(srcImage));
+	// characterCellProcessingMovie("movie_test/*.png", "results.avi");
 
 	// auto chalkImage = chalkFilter(srcImage);
-	// imshow("ChalkFilter", chalkImage);
+	// cv::imshow("ChalkFilter", chalkImage);
 	// auto charImagePtr = static_cast<void*>(&chalkImage);
-	// setMouseCallback("ChalkFilter", onMouse, (charImagePtr));
+	// cv::setMouseCallback("ChalkFilter", onMouse, (charImagePtr));
 
 	chokedLine(srcImage);
 

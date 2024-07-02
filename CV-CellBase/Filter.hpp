@@ -6,12 +6,9 @@
 
 #include <opencv2/opencv.hpp>
 
-using namespace cv;
-using namespace std;
-
 template<typename T, typename int N>
-inline Vec<T, N> abs(Vec<T, N> src) {
-	Vec<T, N> dst;
+inline cv::Vec<T, N> abs(cv::Vec<T, N> src) {
+	cv::Vec<T, N> dst;
 
 	for (int i = 0; i < N; i++) {
 		dst[i] = abs(src[i]);
@@ -21,11 +18,11 @@ inline Vec<T, N> abs(Vec<T, N> src) {
 }
 
 template<typename T, typename int N>
-inline Vec<T, N> max(Vec<T, N> src1, Vec<T, N> src2) {
-	Vec<T, N> dst;
+inline cv::Vec<T, N> max(cv::Vec<T, N> src1, cv::Vec<T, N> src2) {
+	cv::Vec<T, N> dst;
 
 	for (int i = 0; i < N; i++) {
-		dst[i] = max(src1[i], src2[i]);
+		dst[i] = std::max(src1[i], src2[i]);
 	}
 
 	return dst;
@@ -33,42 +30,42 @@ inline Vec<T, N> max(Vec<T, N> src1, Vec<T, N> src2) {
 
 class Filter {
 public:
-	virtual Mat apply(Mat srcImg) = 0;
+	virtual cv::Mat apply(cv::Mat srcImg) = 0;
 
 };
 
 class LinearFilter :public Filter {
 public:
-	Mat_<float> kernel;
+	cv::Mat_<float> kernel;
 
 protected:
 	LinearFilter(int kernel_width, int kernel_height) {
-		kernel = Mat_<float>(kernel_height, kernel_width);
+		kernel = cv::Mat_<float>(kernel_height, kernel_width);
 	}
 
 public:
-	Mat apply(Mat srcImg) {
-		auto dstImg = Mat(srcImg.size(), srcImg.type());
+	cv::Mat apply(cv::Mat srcImg) {
+		auto dstImg = cv::Mat(srcImg.size(), srcImg.type());
 
 		const int kernelCenterY = kernel.rows / 2;
 		const int kernelCenterX = kernel.cols / 2;
 
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				Vec3f dstImgPixel(0, 0, 0);
+				cv::Vec3f dstImgPixel(0, 0, 0);
 
 				for (int kernelY = 0; kernelY < kernel.rows; kernelY++) {
 					for (int kernelX = 0; kernelX < kernel.cols; kernelX++) {
-						auto imgSampleY = clamp(imgY + kernelY - kernelCenterY, 0, srcImg.rows - 1);
-						auto imgSampleX = clamp(imgX + kernelX - kernelCenterX, 0, srcImg.cols - 1);
-						auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
+						auto imgSampleY = std::clamp(imgY + kernelY - kernelCenterY, 0, srcImg.rows - 1);
+						auto imgSampleX = std::clamp(imgX + kernelX - kernelCenterX, 0, srcImg.cols - 1);
+						auto srcImgPixel = srcImg.at<cv::Vec3b>(imgSampleY, imgSampleX);
 
 						auto weight = kernel(kernelY, kernelX);
-						dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
+						dstImgPixel += static_cast<cv::Vec3f>(srcImgPixel) * weight;
 					}
 				}
 
-				dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel;
+				dstImg.at<cv::Vec3b>(imgY, imgX) = dstImgPixel;
 			}
 		}
 
@@ -121,33 +118,33 @@ public:
 
 class SobelAbsXY :public Filter {
 private:
-	Mat_<float> sobelX = SobelX().kernel;
-	Mat_<float> sobelY = SobelY().kernel;
+	cv::Mat_<float> sobelX = SobelX().kernel;
+	cv::Mat_<float> sobelY = SobelY().kernel;
 
 public:
-	Mat apply(Mat srcImg) {
-		auto dstImg = Mat(srcImg.size(), srcImg.type());
+	cv::Mat apply(cv::Mat srcImg) {
+		auto dstImg = cv::Mat(srcImg.size(), srcImg.type());
 
 		const int kernelCenterY = sobelX.rows / 2;
 		const int kernelCenterX = sobelX.cols / 2;
 
 		for (int imgY = 1; imgY < srcImg.rows - 1; imgY++) {
 			for (int imgX = 1; imgX < srcImg.cols - 1; imgX++) {
-				Vec3f dstImgPixelX(0, 0, 0), dstImgPixelY(0, 0, 0);
+				cv::Vec3f dstImgPixelX(0, 0, 0), dstImgPixelY(0, 0, 0);
 				for (int kernelY = 0; kernelY < sobelX.rows; kernelY++) {
 					for (int kernelX = 0; kernelX < sobelX.cols; kernelX++) {
 						auto imgSampleY = imgY + kernelY - kernelCenterY;
 						auto imgSampleX = imgX + kernelX - kernelCenterX;
-						auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
+						auto srcImgPixel = srcImg.at<cv::Vec3b>(imgSampleY, imgSampleX);
 
 						auto weightX = sobelX(kernelY, kernelX);
 						auto weightY = sobelY(kernelY, kernelX);
 
-						dstImgPixelX += static_cast<Vec3f>(srcImgPixel) * weightX;
-						dstImgPixelY += static_cast<Vec3f>(srcImgPixel) * weightY;
+						dstImgPixelX += static_cast<cv::Vec3f>(srcImgPixel) * weightX;
+						dstImgPixelY += static_cast<cv::Vec3f>(srcImgPixel) * weightY;
 					}
 				}
-				dstImg.at<Vec3b>(imgY, imgX) = max(abs(dstImgPixelX), abs(dstImgPixelY));
+				dstImg.at<cv::Vec3b>(imgY, imgX) = max(abs(dstImgPixelX), abs(dstImgPixelY));
 			}
 		}
 
@@ -158,7 +155,7 @@ public:
 class GaussianBlur : public LinearFilter {
 public:
 	GaussianBlur(float sigma, int size) : LinearFilter(size, size) {
-		constexpr float pi = static_cast<float>(numbers::pi);
+		constexpr float pi = static_cast<float>(std::numbers::pi);
 
 		float gauss_total = 0.0f;
 		int center = size / 2;
@@ -186,15 +183,15 @@ public:
 };
 
 class LineOnly : public Filter {
-	Mat apply(Mat srcImg) {
-		auto dstImg = Mat(srcImg.size(), srcImg.type());
+	cv::Mat apply(cv::Mat srcImg) {
+		auto dstImg = cv::Mat(srcImg.size(), srcImg.type());
 		for (int imgY = 1; imgY < srcImg.rows - 1; imgY++) {
 			for (int imgX = 1; imgX < srcImg.cols - 1; imgX++) {
-				if (srcImg.at<Vec3b>(imgY, imgX) == Vec3b(4, 2, 10)) {
-					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(4, 2, 10);
+				if (srcImg.at<cv::Vec3b>(imgY, imgX) == cv::Vec3b(4, 2, 10)) {
+					dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(4, 2, 10);
 				}
 				else {
-					dstImg.at<Vec3b>(imgY, imgX) = Vec3b(255, 255, 255);
+					dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(255, 255, 255);
 				}
 			}
 		}
@@ -204,11 +201,11 @@ class LineOnly : public Filter {
 };
 
 class LineRemover : public Filter {
-	Vec3b lineColor;
-	Vec3b backgroundColor;
+	cv::Vec3b lineColor;
+	cv::Vec3b backgroundColor;
 	int maxTimes;
 
-	auto getRepaintColor(Mat srcImg, int x, int y) {
+	auto getRepaintColor(cv::Mat srcImg, int x, int y) {
 		const int width = srcImg.cols;
 		const int height = srcImg.rows;
 
@@ -220,7 +217,7 @@ class LineRemover : public Filter {
 					continue;
 				}
 
-				auto srcColor = srcImg.at<Vec3b>(sampleY, sampleX);
+				auto srcColor = srcImg.at<cv::Vec3b>(sampleY, sampleX);
 				if (srcColor != lineColor && srcColor != backgroundColor) {
 					return srcColor;
 				}
@@ -230,7 +227,7 @@ class LineRemover : public Filter {
 		return lineColor;
 	}
 
-	pair<Mat, int> _apply(Mat srcImg) {
+	std::pair<cv::Mat, int> _apply(cv::Mat srcImg) {
 		auto dstImg = srcImg.clone();
 
 		int width = srcImg.cols;
@@ -240,22 +237,22 @@ class LineRemover : public Filter {
 
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				auto srcColor = srcImg.at<Vec3b>(y, x);
+				auto srcColor = srcImg.at<cv::Vec3b>(y, x);
 				if (srcColor == lineColor) {
 					auto dstColor = getRepaintColor(srcImg, x, y);
-					if (dstColor != lineColor) { dstImg.at<Vec3b>(y, x) = dstColor; }
+					if (dstColor != lineColor) { dstImg.at<cv::Vec3b>(y, x) = dstColor; }
 					else { notFoundCount++; }
 				}
 			}
 		}
 
-		return make_pair(dstImg, notFoundCount);
+		return std::make_pair(dstImg, notFoundCount);
 	}
 
 public:
-	LineRemover(Vec3b _lineColor, Vec3b _backgroundColor, int _maxTimes) : lineColor(_lineColor), backgroundColor(backgroundColor), maxTimes(_maxTimes) {}
+	LineRemover(cv::Vec3b _lineColor, cv::Vec3b _backgroundColor, int _maxTimes) : lineColor(_lineColor), backgroundColor(backgroundColor), maxTimes(_maxTimes) {}
 
-	Mat apply(Mat srcImg) {
+	cv::Mat apply(cv::Mat srcImg) {
 		auto img = srcImg;
 
 		for (int i = 0; i < maxTimes; i++) {
@@ -275,45 +272,45 @@ public:
 	Choke(double _chokeMatte1) : chokeMatte1(_chokeMatte1) {}
 
 private:
-	Mat applyChokeY(Mat img, double chokeMatte) {
-		auto dstImg = Mat(img.size(), img.type());
+	cv::Mat applyChokeY(cv::Mat img, double chokeMatte) {
+		auto dstImg = cv::Mat(img.size(), img.type());
 
 		for (int imgX = 0; imgX < img.cols - 1; imgX++) {
 			for (int imgY = 0; imgY < img.rows - 1; imgY++) {
 
 				int altered = 0;
-				if (img.at<Vec3b>(imgY, imgX) != Vec3b(255, 255, 255)) {
-					if (imgY != 0 && img.at<Vec3b>(imgY - 1, imgX) == Vec3b(255, 255, 255)) {
+				if (img.at<cv::Vec3b>(imgY, imgX) != cv::Vec3b(255, 255, 255)) {
+					if (imgY != 0 && img.at<cv::Vec3b>(imgY - 1, imgX) == cv::Vec3b(255, 255, 255)) {
 						altered++;
 						for (int k = 0; k < chokeMatte; k++) {
 							if (imgY + k > img.rows - 1) {
-								dstImg.at<Vec3b>(img.rows - 1, imgX) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(img.rows - 1, imgX) = cv::Vec3b(255, 255, 255);
 							}
 							else {
-								dstImg.at<Vec3b>(imgY + k, imgX) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(imgY + k, imgX) = cv::Vec3b(255, 255, 255);
 							}
 						}
 						imgY += chokeMatte;
 					}
-					else if (img.at<Vec3b>(imgY + 1, imgX) == Vec3b(255, 255, 255)) {
+					else if (img.at<cv::Vec3b>(imgY + 1, imgX) == cv::Vec3b(255, 255, 255)) {
 						altered++;
 						for (int k = 0; k < chokeMatte; k++) {
 							if (imgY - k < 0) {
-								dstImg.at<Vec3b>(0, imgX) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(0, imgX) = cv::Vec3b(255, 255, 255);
 							}
 							else {
-								dstImg.at<Vec3b>(imgY - k, imgX) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(imgY - k, imgX) = cv::Vec3b(255, 255, 255);
 							}
 						}
 					}
 
 					if (altered == 0) {
-						dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+						dstImg.at<cv::Vec3b>(imgY, imgX) = img.at<cv::Vec3b>(imgY, imgX);
 					}
 				}
 
 				else {
-					dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+					dstImg.at<cv::Vec3b>(imgY, imgX) = img.at<cv::Vec3b>(imgY, imgX);
 				}
 			}
 		}
@@ -321,44 +318,44 @@ private:
 		return dstImg;
 	}
 
-	Mat applyChokeX(Mat img, double chokeMatte) {
-		auto dstImg = Mat(img.size(), img.type());
+	cv::Mat applyChokeX(cv::Mat img, double chokeMatte) {
+		auto dstImg = cv::Mat(img.size(), img.type());
 
 		for (int imgY = 0; imgY < img.rows - 1; imgY++) {
 			for (int imgX = 0; imgX < img.cols - 1; imgX++) {
 				int altered = 0;
-				if (img.at<Vec3b>(imgY, imgX) != Vec3b(255, 255, 255)) {
-					if (img.at<Vec3b>(imgY, imgX - 1) == Vec3b(255, 255, 255)) {
+				if (img.at<cv::Vec3b>(imgY, imgX) != cv::Vec3b(255, 255, 255)) {
+					if (img.at<cv::Vec3b>(imgY, imgX - 1) == cv::Vec3b(255, 255, 255)) {
 						altered++;
 						for (int k = 0; k < chokeMatte; k++) {
 							if (imgX + k > img.cols - 1) {
-								dstImg.at<Vec3b>(imgY, img.cols - 1) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(imgY, img.cols - 1) = cv::Vec3b(255, 255, 255);
 							}
 							else {
-								dstImg.at<Vec3b>(imgY, imgX + k) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(imgY, imgX + k) = cv::Vec3b(255, 255, 255);
 							}
 						}
 						imgX += chokeMatte;
 					}
-					else if (img.at<Vec3b>(imgY, imgX + 1) == Vec3b(255, 255, 255)) {
+					else if (img.at<cv::Vec3b>(imgY, imgX + 1) == cv::Vec3b(255, 255, 255)) {
 						altered++;
 						for (int k = 0; k < chokeMatte; k++) {
 							if (imgX - k < img.cols) {
-								dstImg.at<Vec3b>(imgY, img.cols) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(imgY, img.cols) = cv::Vec3b(255, 255, 255);
 							}
 							else {
-								dstImg.at<Vec3b>(imgY, imgX - k) = Vec3b(255, 255, 255);
+								dstImg.at<cv::Vec3b>(imgY, imgX - k) = cv::Vec3b(255, 255, 255);
 							}
 						}
 
 					}
 
 					if (altered == 0) {
-						dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+						dstImg.at<cv::Vec3b>(imgY, imgX) = img.at<cv::Vec3b>(imgY, imgX);
 					}
 				}
 				else {
-					dstImg.at<Vec3b>(imgY, imgX) = img.at<Vec3b>(imgY, imgX);
+					dstImg.at<cv::Vec3b>(imgY, imgX) = img.at<cv::Vec3b>(imgY, imgX);
 				}
 			}
 		}
@@ -367,36 +364,36 @@ private:
 	}
 
 public:
-	Mat apply(Mat img) {
+	cv::Mat apply(cv::Mat img) {
 		int chokeMatte = chokeMatte1 / 2;
 		auto chokedXImg = applyChokeX(img, chokeMatte);
 		return applyChokeY(chokedXImg, chokeMatte);
 	}
 };
 
-Mat applyLayers(vector<Mat> srcImgs) {
-	auto dstImg = Mat(srcImgs.at(0).size(), srcImgs.at(0).type());
+cv::Mat applyLayers(std::vector<cv::Mat> srcImgs) {
+	auto dstImg = cv::Mat(srcImgs.at(0).size(), srcImgs.at(0).type());
 	for (int imgY = 0; imgY < srcImgs.at(0).rows; imgY++) {
 		for (int imgX = 0; imgX < srcImgs.at(0).cols; imgX++) {
 			int whiteBuff = 0;
 			int totalB = 0;
 			int totalG = 0;
 			int totalR = 0;
-			for (Mat img : srcImgs) {
-				if (img.at<Vec3b>(imgY, imgX) == Vec3b(255, 255, 255)) {
+			for (cv::Mat img : srcImgs) {
+				if (img.at<cv::Vec3b>(imgY, imgX) == cv::Vec3b(255, 255, 255)) {
 					whiteBuff++;
 				}
 				else {
-					totalB += img.at<Vec3b>(imgY, imgX)[0];
-					totalG += img.at<Vec3b>(imgY, imgX)[1];
-					totalR += img.at<Vec3b>(imgY, imgX)[2];
+					totalB += img.at<cv::Vec3b>(imgY, imgX)[0];
+					totalG += img.at<cv::Vec3b>(imgY, imgX)[1];
+					totalR += img.at<cv::Vec3b>(imgY, imgX)[2];
 				}
 			}
 			if (whiteBuff == srcImgs.size()) {
-				dstImg.at<Vec3b>(imgY, imgX) = Vec3b(255, 255, 255);
+				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(255, 255, 255);
 			}
 			else {
-				dstImg.at<Vec3b>(imgY, imgX) = Vec3b(totalB / (srcImgs.size() - whiteBuff), totalG / (srcImgs.size() - whiteBuff), totalR / (srcImgs.size() - whiteBuff));
+				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(totalB / (srcImgs.size() - whiteBuff), totalG / (srcImgs.size() - whiteBuff), totalR / (srcImgs.size() - whiteBuff));
 			}
 		}
 
@@ -404,53 +401,53 @@ Mat applyLayers(vector<Mat> srcImgs) {
 	return dstImg;
 }
 
-Mat applyLayersWithAlpha(Mat bg, Mat fg, double alpha) {
+cv::Mat applyLayersWithAlpha(cv::Mat bg, cv::Mat fg, double alpha) {
 	if (alpha > 1) {
 		alpha == 1;
 	}
-	auto dstImg = Mat(bg.size(), bg.type());
+	auto dstImg = cv::Mat(bg.size(), bg.type());
 	for (int imgY = 0; imgY < bg.rows; imgY++) {
 		for (int imgX = 0; imgX < bg.cols; imgX++) {
-			if (fg.at<Vec3b>(imgY, imgX) == Vec3b(255, 255, 255)) {
-				dstImg.at<Vec3b>(imgY, imgX) = bg.at<Vec3b>(imgY, imgX);
+			if (fg.at<cv::Vec3b>(imgY, imgX) == cv::Vec3b(255, 255, 255)) {
+				dstImg.at<cv::Vec3b>(imgY, imgX) = bg.at<cv::Vec3b>(imgY, imgX);
 
 			}
-			else if (bg.at<Vec3b>(imgY, imgX) == Vec3b(255, 255, 255)) {
-				dstImg.at<Vec3b>(imgY, imgX) = fg.at<Vec3b>(imgY, imgX);
+			else if (bg.at<cv::Vec3b>(imgY, imgX) == cv::Vec3b(255, 255, 255)) {
+				dstImg.at<cv::Vec3b>(imgY, imgX) = fg.at<cv::Vec3b>(imgY, imgX);
 			}
 			else {
-				int bgB = bg.at<Vec3b>(imgY, imgX)[0] * (1 - alpha);
-				int bgG = bg.at<Vec3b>(imgY, imgX)[1] * (1 - alpha);
-				int bgR = bg.at<Vec3b>(imgY, imgX)[2] * (1 - alpha);
+				int bgB = bg.at<cv::Vec3b>(imgY, imgX)[0] * (1 - alpha);
+				int bgG = bg.at<cv::Vec3b>(imgY, imgX)[1] * (1 - alpha);
+				int bgR = bg.at<cv::Vec3b>(imgY, imgX)[2] * (1 - alpha);
 
-				int fgB = fg.at<Vec3b>(imgY, imgX)[0] * alpha;
-				int fgG = fg.at<Vec3b>(imgY, imgX)[1] * alpha;
-				int fgR = fg.at<Vec3b>(imgY, imgX)[2] * alpha;
-				dstImg.at<Vec3b>(imgY, imgX) = Vec3b(bgB + fgB, bgG + fgG, bgR + fgR);
+				int fgB = fg.at<cv::Vec3b>(imgY, imgX)[0] * alpha;
+				int fgG = fg.at<cv::Vec3b>(imgY, imgX)[1] * alpha;
+				int fgR = fg.at<cv::Vec3b>(imgY, imgX)[2] * alpha;
+				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(bgB + fgB, bgG + fgG, bgR + fgR);
 			}
 		}
 	}
 	return dstImg;
 }
 
-Mat applyAlpha(Mat image, double alpha) {
+cv::Mat applyAlpha(cv::Mat image, double alpha) {
 	if (alpha > 1) {
 		alpha == 1;
 	}
-	auto dstImg = Mat(image.size(), image.type());
+	auto dstImg = cv::Mat(image.size(), image.type());
 	for (int imgY = 0; imgY < image.rows - 1; imgY++) {
 		for (int imgX = 0; imgX < image.cols - 1; imgX++) {
-			if (image.at<Vec4b>(imgY, imgX) == Vec4b(255, 255, 255, 255)) {
-				dstImg.at<Vec4b>(imgY, imgX) = Vec4b(255, 255, 255, 255);
+			if (image.at<cv::Vec4b>(imgY, imgX) == cv::Vec4b(255, 255, 255, 255)) {
+				dstImg.at<cv::Vec4b>(imgY, imgX) = cv::Vec4b(255, 255, 255, 255);
 
 			}
 			else {
-				int newB = image.at<Vec4b>(imgY, imgX)[0];
-				int newG = image.at<Vec4b>(imgY, imgX)[1];
-				int newR = image.at<Vec4b>(imgY, imgX)[2];
-				int newA = image.at<Vec4b>(imgY, imgX)[3];
+				int newB = image.at<cv::Vec4b>(imgY, imgX)[0];
+				int newG = image.at<cv::Vec4b>(imgY, imgX)[1];
+				int newR = image.at<cv::Vec4b>(imgY, imgX)[2];
+				int newA = image.at<cv::Vec4b>(imgY, imgX)[3];
 
-				dstImg.at<Vec4b>(imgY, imgX) = Vec4b(newB * alpha + (255 * (1 - alpha)), newG * alpha + (255 * (1 - alpha)), newR * alpha + (255 * (1 - alpha)), newA * alpha + (255 * (1 - alpha)));
+				dstImg.at<cv::Vec4b>(imgY, imgX) = cv::Vec4b(newB * alpha + (255 * (1 - alpha)), newG * alpha + (255 * (1 - alpha)), newR * alpha + (255 * (1 - alpha)), newA * alpha + (255 * (1 - alpha)));
 			}
 		}
 
@@ -459,7 +456,7 @@ Mat applyAlpha(Mat image, double alpha) {
 	return dstImg;
 }
 
-Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
+cv::Mat applyFilters(cv::Mat srcImg, const std::span<const std::shared_ptr<Filter>> filters) {
 	auto img = srcImg;
 
 	for (auto filter : filters) {
@@ -469,7 +466,7 @@ Mat applyFilters(Mat srcImg, const span<const shared_ptr<Filter>> filters) {
 	return img;
 }
 
-Mat applyFilters(Mat srcImg, const initializer_list<shared_ptr<Filter>> filters) {
-	span _span(filters.begin(), filters.size());
+cv::Mat applyFilters(cv::Mat srcImg, const std::initializer_list<std::shared_ptr<Filter>> filters) {
+	std::span _span(filters.begin(), filters.size());
 	return applyFilters(srcImg, _span);
 }

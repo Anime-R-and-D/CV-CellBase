@@ -4,10 +4,10 @@ constexpr std::int_fast32_t _256 = 256;
 
 class CellBlur : public Filter {
 public:
-	vector<float> kernel;
-	vector<vector<Vec3b>> targets;
+	std::vector<float> kernel;
+	std::vector<std::vector<cv::Vec3b>> targets;
 
-	CellBlur(float sigma, int size, vector<vector<Vec3b>> _targets) : kernel(), targets(_targets) {
+	CellBlur(float sigma, int size, std::vector<std::vector<cv::Vec3b>> _targets) : kernel(), targets(_targets) {
 		float gauss_total = 0.0f;
 		int center = size / 2;
 
@@ -24,13 +24,13 @@ public:
 		}
 	}
 
-	Mat_<int_fast32_t> convertToIntImg(const Mat& srcImg, int* _startNotWhiteX, int* _startNotWhiteY, int* _endNotWhiteX, int* _endNotWhiteY) {
-		Mat_<int_fast32_t> iSrcImg(srcImg.size());
+	cv::Mat_<int_fast32_t> convertToIntImg(const cv::Mat& srcImg, int* _startNotWhiteX, int* _startNotWhiteY, int* _endNotWhiteX, int* _endNotWhiteY) {
+		cv::Mat_<int_fast32_t> iSrcImg(srcImg.size());
 
 		const int size = srcImg.rows * srcImg.cols;
 		constexpr int_fast32_t white = 255 + 255 * _256 + 255 * _256 * _256;
 
-		auto srcData = reinterpret_cast<Vec3b*>(srcImg.data);
+		auto srcData = reinterpret_cast<cv::Vec3b*>(srcImg.data);
 		auto iSrcData = reinterpret_cast<int_fast32_t*>(iSrcImg.data);
 
 		int startNotWhiteX = srcImg.cols - 1;
@@ -45,10 +45,10 @@ public:
 				iSrcData[i] = iSrcPixel;
 				i++;
 				if (iSrcPixel != white) {
-					startNotWhiteX = min(startNotWhiteX, imgX);
-					startNotWhiteY = min(startNotWhiteY, imgY);
-					endNotWhiteX = max(endNotWhiteX, imgX);
-					endNotWhiteY = max(endNotWhiteY, imgY);
+					startNotWhiteX = std::min(startNotWhiteX, imgX);
+					startNotWhiteY = std::min(startNotWhiteY, imgY);
+					endNotWhiteX = std::max(endNotWhiteX, imgX);
+					endNotWhiteY = std::max(endNotWhiteY, imgY);
 				}
 			}
 		}
@@ -61,10 +61,10 @@ public:
 		return iSrcImg;
 	}
 
-	Mat_<bool> _createTargetFlagImg(Mat_<int_fast32_t> srcImg, vector<Vec3b> _target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY, int startNotWhiteX, int startNotWhiteY, int endNotWhiteX, int endNotWhiteY) {
-		auto dstImg = Mat_<bool>(srcImg.size());
+	cv::Mat_<bool> _createTargetFlagImg(cv::Mat_<int_fast32_t> srcImg, std::vector<cv::Vec3b> _target, int* _startImgX, int* _startImgY, int* _endImgX, int* _endImgY, int startNotWhiteX, int startNotWhiteY, int endNotWhiteX, int endNotWhiteY) {
+		auto dstImg = cv::Mat_<bool>(srcImg.size());
 
-		bool inWhite = std::find(_target.begin(), _target.end(), Vec3b(255, 255, 255)) != _target.end();
+		bool inWhite = std::find(_target.begin(), _target.end(), cv::Vec3b(255, 255, 255)) != _target.end();
 		if (inWhite == true) {
 			startNotWhiteX = 0;
 			startNotWhiteY = 0;
@@ -76,7 +76,7 @@ public:
 		auto dstData = reinterpret_cast<bool*>(dstImg.data);
 		int size = srcImg.rows * srcImg.cols;
 
-		vector<std::int_fast32_t> target;
+		std::vector<std::int_fast32_t> target;
 		for (int i = 0; i < _target.size(); i++) {
 			target.push_back(_target[i][0] + _target[i][1] * _256 + _target[i][2] * _256 * _256);
 		}
@@ -102,10 +102,10 @@ public:
 
 				if (isTarget) {
 					dstData[i] = true;
-					startImgX = min(startImgX, imgX);
-					startImgY = min(startImgY, imgY);
-					endImgX = max(endImgX, imgX);
-					endImgY = max(endImgY, imgY);
+					startImgX = std::min(startImgX, imgX);
+					startImgY = std::min(startImgY, imgY);
+					endImgX = std::max(endImgX, imgX);
+					endImgY = std::max(endImgY, imgY);
 				}
 				i++;
 			}
@@ -119,8 +119,8 @@ public:
 		return dstImg;
 	}
 
-	Mat_<Vec3f> _apply(Mat_<Vec3f>& srcImg, const Mat_<bool>& targetFlagImg, int startImgX, int startImgY, int endImgX, int endImgY) {
-		Mat_<Vec4f> dstImgY(srcImg.size());
+	cv::Mat_<cv::Vec3f> _apply(cv::Mat_<cv::Vec3f>& srcImg, const cv::Mat_<bool>& targetFlagImg, int startImgX, int startImgY, int endImgX, int endImgY) {
+		cv::Mat_<cv::Vec4f> dstImgY(srcImg.size());
 
 		const int kernelSize = static_cast<int>(kernel.size());
 		const int kernelCenter = kernelSize / 2;
@@ -128,14 +128,14 @@ public:
 		for (int imgY = startImgY; imgY <= endImgY; imgY++) {
 			for (int imgX = startImgX; imgX < endImgX; imgX++) {
 				if (targetFlagImg(imgY, imgX)) {
-					Vec4f dstImgPixel(0, 0, 0, 0);
+					cv::Vec4f dstImgPixel(0, 0, 0, 0);
 					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
-						auto imgSampleX = clamp(imgX + kernelIdx - kernelCenter, 0, srcImg.cols - 1);
+						auto imgSampleX = std::clamp(imgX + kernelIdx - kernelCenter, 0, srcImg.cols - 1);
 						if (targetFlagImg(imgY, imgSampleX)) {
 							auto weight = kernel[kernelIdx];
 							auto srcImgPixel = srcImg(imgY, imgSampleX);
 							auto srcImgPixel_weighted = srcImgPixel * weight;
-							dstImgPixel += Vec4f(srcImgPixel_weighted[0], srcImgPixel_weighted[1], srcImgPixel_weighted[2], weight);
+							dstImgPixel += cv::Vec4f(srcImgPixel_weighted[0], srcImgPixel_weighted[1], srcImgPixel_weighted[2], weight);
 						}
 					}
 					dstImgY(imgY, imgX) = dstImgPixel;
@@ -148,16 +148,16 @@ public:
 		for (int imgY = startImgY; imgY <= endImgY; imgY++) {
 			for (int imgX = startImgX; imgX <= endImgX; imgX++) {
 				if (targetFlagImg(imgY, imgX)) {
-					Vec4f dstImgPixel(0, 0, 0);
+					cv::Vec4f dstImgPixel(0, 0, 0);
 					for (int kernelIdx = 0; kernelIdx < kernelSize; kernelIdx++) {
-						auto imgSampleY = clamp(imgY + kernelIdx - kernelCenter, 0, srcImg.rows - 1);
+						auto imgSampleY = std::clamp(imgY + kernelIdx - kernelCenter, 0, srcImg.rows - 1);
 						if (targetFlagImg(imgSampleY, imgX)) {
 							auto weight = kernel[kernelIdx];
 							auto srcImgPixel = dstImgY(imgSampleY, imgX);
 							dstImgPixel += srcImgPixel * weight;
 						}
 					}
-					dstImg(imgY, imgX) = *reinterpret_cast<Vec3f*>(&dstImgPixel) / dstImgPixel[3];
+					dstImg(imgY, imgX) = *reinterpret_cast<cv::Vec3f*>(&dstImgPixel) / dstImgPixel[3];
 				}
 			}
 		}
@@ -165,11 +165,11 @@ public:
 		return dstImg;
 	}
 
-	Mat apply(Mat srcImg) {
+	cv::Mat apply(cv::Mat srcImg) {
 		int startNotWhiteX, startNotWhiteY, endNotWhiteX, endNotWhiteY;
 		auto iSrcImg = convertToIntImg(srcImg, &startNotWhiteX, &startNotWhiteY, &endNotWhiteX, &endNotWhiteY);
 
-		Mat_<Vec3f> img = srcImg;
+		cv::Mat_<cv::Vec3f> img = srcImg;
 
 
 		for (auto target : targets) {
@@ -178,7 +178,7 @@ public:
 			img = _apply(img, targetFlagImg, startImgX, startImgY, imgEndX, imgEndY);
 		}
 
-		Mat_<Vec3b> dstImg = img;
+		cv::Mat_<cv::Vec3b> dstImg = img;
 		return dstImg;
 	}
 };
