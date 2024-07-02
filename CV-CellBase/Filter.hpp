@@ -6,12 +6,6 @@
 
 #include <opencv2/opencv.hpp>
 
-#ifdef _DEBUG
-#pragma comment (lib, "opencv_world4100d.lib")
-#else
-#pragma comment (lib, "opencv_world4100.lib")
-#endif
-
 using namespace cv;
 using namespace std;
 
@@ -191,60 +185,7 @@ public:
 	}
 };
 
-class CellBlur : public Filter {
-public:
-	Mat_<float> kernel;
-	vector<vector<Vec3b>> targets;
-
-	CellBlur(float sigma, int size, vector<vector<Vec3b>> _targets) : kernel(::GaussianBlur(sigma, size).kernel), targets(_targets) {	}
-
-	Mat _apply(Mat srcImg, vector<Vec3b> target) {
-		auto dstImg = Mat(srcImg.size(), srcImg.type());
-
-		const int kernelCenterY = kernel.rows / 2;
-		const int kernelCenterX = kernel.cols / 2;
-		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
-			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgY, imgX)) != target.end())) {
-					Vec3f dstImgPixel(0, 0, 0);
-					float weightSum = 0.0f;
-
-					for (int kernelY = 0; kernelY < kernel.rows; kernelY++) {
-						for (int kernelX = 0; kernelX < kernel.cols; kernelX++) {
-							auto imgSampleY = clamp(imgY + kernelY - kernelCenterY, 0, srcImg.rows - 1);
-							auto imgSampleX = clamp(imgX + kernelX - kernelCenterX, 0, srcImg.cols - 1);
-							auto weight = kernel.at<float>(kernelY, kernelX);
-
-							if ((find(target.begin(), target.end(), srcImg.at<Vec3b>(imgSampleY, imgSampleX)) != target.end())) {
-								auto srcImgPixel = srcImg.at<Vec3b>(imgSampleY, imgSampleX);
-								dstImgPixel += static_cast<Vec3f>(srcImgPixel) * weight;
-								weightSum += weight;
-							}
-						}
-					}
-					dstImg.at<Vec3b>(imgY, imgX) = dstImgPixel / weightSum;
-				}
-				else {
-					dstImg.at<Vec3b>(imgY, imgX) = srcImg.at<Vec3b>(imgY, imgX);
-				}
-			}
-		}
-		return dstImg;
-	}
-
-	Mat apply(Mat srcImg) {
-		auto img = srcImg;
-
-		for (auto target : targets) {
-			img = _apply(img, target);
-		}
-
-		return img;
-	}
-};
-
 class LineOnly : public Filter {
-
 	Mat apply(Mat srcImg) {
 		auto dstImg = Mat(srcImg.size(), srcImg.type());
 		for (int imgY = 1; imgY < srcImg.rows - 1; imgY++) {
