@@ -267,12 +267,12 @@ public:
 
 class Choke : public Filter {
 public:
-	double chokeMatte1;
+	int chokeMatte1;
 
-	Choke(double _chokeMatte1) : chokeMatte1(_chokeMatte1) {}
+	Choke(int _chokeMatte1) : chokeMatte1(_chokeMatte1) {}
 
 private:
-	cv::Mat applyChokeY(cv::Mat img, double chokeMatte) {
+	cv::Mat applyChokeY(cv::Mat img, int chokeMatte) {
 		auto dstImg = cv::Mat(img.size(), img.type());
 
 		for (int imgX = 0; imgX < img.cols - 1; imgX++) {
@@ -318,7 +318,7 @@ private:
 		return dstImg;
 	}
 
-	cv::Mat applyChokeX(cv::Mat img, double chokeMatte) {
+	cv::Mat applyChokeX(cv::Mat img, int chokeMatte) {
 		auto dstImg = cv::Mat(img.size(), img.type());
 
 		for (int imgY = 0; imgY < img.rows - 1; imgY++) {
@@ -373,6 +373,8 @@ public:
 
 cv::Mat applyLayers(std::vector<cv::Mat> srcImgs) {
 	auto dstImg = cv::Mat(srcImgs.at(0).size(), srcImgs.at(0).type());
+	int srcCount = static_cast<int>(srcImgs.size());
+
 	for (int imgY = 0; imgY < srcImgs.at(0).rows; imgY++) {
 		for (int imgX = 0; imgX < srcImgs.at(0).cols; imgX++) {
 			int whiteBuff = 0;
@@ -393,7 +395,7 @@ cv::Mat applyLayers(std::vector<cv::Mat> srcImgs) {
 				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(255, 255, 255);
 			}
 			else {
-				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(totalB / (srcImgs.size() - whiteBuff), totalG / (srcImgs.size() - whiteBuff), totalR / (srcImgs.size() - whiteBuff));
+				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(totalB / (srcCount - whiteBuff), totalG / (srcCount - whiteBuff), totalR / (srcCount - whiteBuff));
 			}
 		}
 
@@ -403,8 +405,9 @@ cv::Mat applyLayers(std::vector<cv::Mat> srcImgs) {
 
 cv::Mat applyLayersWithAlpha(cv::Mat bg, cv::Mat fg, double alpha) {
 	if (alpha > 1) {
-		alpha == 1;
+		alpha = 1;
 	}
+
 	auto dstImg = cv::Mat(bg.size(), bg.type());
 	for (int imgY = 0; imgY < bg.rows; imgY++) {
 		for (int imgX = 0; imgX < bg.cols; imgX++) {
@@ -416,14 +419,9 @@ cv::Mat applyLayersWithAlpha(cv::Mat bg, cv::Mat fg, double alpha) {
 				dstImg.at<cv::Vec3b>(imgY, imgX) = fg.at<cv::Vec3b>(imgY, imgX);
 			}
 			else {
-				int bgB = bg.at<cv::Vec3b>(imgY, imgX)[0] * (1 - alpha);
-				int bgG = bg.at<cv::Vec3b>(imgY, imgX)[1] * (1 - alpha);
-				int bgR = bg.at<cv::Vec3b>(imgY, imgX)[2] * (1 - alpha);
-
-				int fgB = fg.at<cv::Vec3b>(imgY, imgX)[0] * alpha;
-				int fgG = fg.at<cv::Vec3b>(imgY, imgX)[1] * alpha;
-				int fgR = fg.at<cv::Vec3b>(imgY, imgX)[2] * alpha;
-				dstImg.at<cv::Vec3b>(imgY, imgX) = cv::Vec3b(bgB + fgB, bgG + fgG, bgR + fgR);
+				auto bgPixel = bg.at<cv::Vec3b>(imgY, imgX);
+				auto fgPixel = fg.at<cv::Vec3b>(imgY, imgX);
+				dstImg.at<cv::Vec3b>(imgY, imgX) = bgPixel * (1 - alpha) + fgPixel * alpha;
 			}
 		}
 	}
@@ -432,8 +430,9 @@ cv::Mat applyLayersWithAlpha(cv::Mat bg, cv::Mat fg, double alpha) {
 
 cv::Mat applyAlpha(cv::Mat image, double alpha) {
 	if (alpha > 1) {
-		alpha == 1;
+		alpha = 1;
 	}
+
 	auto dstImg = cv::Mat(image.size(), image.type());
 	for (int imgY = 0; imgY < image.rows - 1; imgY++) {
 		for (int imgX = 0; imgX < image.cols - 1; imgX++) {
@@ -442,12 +441,7 @@ cv::Mat applyAlpha(cv::Mat image, double alpha) {
 
 			}
 			else {
-				int newB = image.at<cv::Vec4b>(imgY, imgX)[0];
-				int newG = image.at<cv::Vec4b>(imgY, imgX)[1];
-				int newR = image.at<cv::Vec4b>(imgY, imgX)[2];
-				int newA = image.at<cv::Vec4b>(imgY, imgX)[3];
-
-				dstImg.at<cv::Vec4b>(imgY, imgX) = cv::Vec4b(newB * alpha + (255 * (1 - alpha)), newG * alpha + (255 * (1 - alpha)), newR * alpha + (255 * (1 - alpha)), newA * alpha + (255 * (1 - alpha)));
+				dstImg.at<cv::Vec4b>(imgY, imgX) = image.at<cv::Vec4b>(imgY, imgX) * alpha + cv::Vec4b(255, 255, 255, 255) * (1 - alpha);
 			}
 		}
 
