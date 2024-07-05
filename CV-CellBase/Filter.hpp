@@ -205,6 +205,10 @@ class LineRemover : public Filter {
 	cv::Vec3b backgroundColor;
 	int maxTimes;
 
+	std::vector<cv::Vec2i> collectLinePositions() {
+		// todo.
+	}
+
 	auto getRepaintColor(cv::Mat srcImg, int x, int y) {
 		const int width = srcImg.cols;
 		const int height = srcImg.rows;
@@ -227,7 +231,7 @@ class LineRemover : public Filter {
 		return lineColor;
 	}
 
-	std::pair<cv::Mat, int> _apply(cv::Mat srcImg) {
+	std::pair<cv::Mat, int> _apply(cv::Mat srcImg, std::vector<cv::Vec2i> linePositions) {
 		auto dstImg = srcImg.clone();
 
 		int width = srcImg.cols;
@@ -235,14 +239,14 @@ class LineRemover : public Filter {
 
 		int notFoundCount = 0;
 
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				auto srcColor = srcImg.at<cv::Vec3b>(y, x);
-				if (srcColor == lineColor) {
-					auto dstColor = getRepaintColor(srcImg, x, y);
-					if (dstColor != lineColor) { dstImg.at<cv::Vec3b>(y, x) = dstColor; }
-					else { notFoundCount++; }
-				}
+		for (auto linePosition : linePositions) {
+			const int x = linePosition[0];
+			const int y = linePosition[1];
+			auto dstColor = getRepaintColor(srcImg, x, y);
+			if (dstColor != lineColor) {
+				dstImg.at<cv::Vec3b>(y, x) = dstColor;
+			} else {
+				// todo: crate new linePositions......
 			}
 		}
 
@@ -254,6 +258,7 @@ public:
 
 	cv::Mat apply(cv::Mat srcImg) {
 		auto img = srcImg;
+		auto linePositions = collectLinePositions();
 
 		for (int i = 0; i < maxTimes; i++) {
 			auto ret = _apply(img);
