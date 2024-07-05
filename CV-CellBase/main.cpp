@@ -146,6 +146,7 @@ int main()
 	// cv::imshow("SobelX", SobelX().apply(srcImage));
 	// cv::imshow("SobelY", SobelY().apply(srcImage));
 	// cv::imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
+	cv::imshow("LineRemover", LineRemover(cv::Vec3b(4, 2, 10), cv::Vec3b(255, 255, 255), 100).apply(srcImage));
 
 	// cv::imshow("CharacterCellProcessing", characterCellProcessing(srcImage));
 	// characterCellProcessingMovie("movie_test/*.png", "results.avi");
@@ -155,7 +156,8 @@ int main()
 	// auto charImagePtr = static_cast<void*>(&chalkImage);
 	// cv::setMouseCallback("ChalkFilter", onMouse, (charImagePtr));
 
-	chokedLine(srcImage);
+	// chokedLine(srcImage);
+
 
 	cv::waitKey(0);
 	return 0;
