@@ -247,14 +247,9 @@ class LineRemover : public Filter {
 	std::pair<cv::Mat, int> _apply(cv::Mat srcImg, std::vector<cv::Vec2i> linePositions) {
 		auto dstImg = srcImg.clone();
 
-		int width = srcImg.cols;
-		int height = srcImg.rows;
-
 		int notFoundCount = 0;
 
-		int i = 0;
 		for (auto linePosition : linePositions) {
-			i++;
 			const int y = linePosition[0];
 			const int x = linePosition[1];
 
@@ -263,8 +258,7 @@ class LineRemover : public Filter {
 			if (dstColor != lineColor) {
 				dstImg.at<cv::Vec3b>(y, x) = dstColor;
 			} else {
-				/*std::cout << "X: " << x << " y: " << y << " Width: " << width << " Height:" << height << "\n";*/
-				dstImg.at<cv::Vec3b>(y, x) = cv::Vec3b(0,128,0);
+				notFoundCount++;
 			}
 		}
 		
@@ -280,8 +274,8 @@ public:
 
 		for (int i = 0; i < maxTimes; i++) {
 			auto ret = _apply(img, linePositions);
+			img = ret.first;
 			if (ret.second == 0) { break; }
-			else { img = ret.first; }
 		}
 
 		return img;
