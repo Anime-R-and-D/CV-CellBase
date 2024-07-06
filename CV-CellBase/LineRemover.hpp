@@ -11,9 +11,11 @@ class LineRemover : public Filter {
 		std::vector<cv::Point> linePositions;
 		linePositions.reserve(pixelCount);
 
+		auto pixels = reinterpret_cast<cv::Vec3b*>(srcImg.data);
+		int i = 0;
 		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
 			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
-				const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(imgY, imgX);
+				const cv::Vec3b srcColor = pixels[i++];
 				for (const auto& lineColor : lineColors) {
 					if (srcColor == lineColor) {
 						linePositions.emplace_back(imgX, imgY);
