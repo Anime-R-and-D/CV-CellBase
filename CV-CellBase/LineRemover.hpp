@@ -65,11 +65,9 @@ class LineRemover : public Filter {
 		return false;
 	}
 
-	std::pair<cv::Mat, std::vector<cv::Point>> _apply(cv::Mat srcImg, const std::vector<cv::Point>& linePositions) {
+	std::vector<cv::Point> _apply(const cv::Mat srcImg, cv::Mat dstImg, const std::vector<cv::Point>& linePositions) {
 		std::vector<cv::Vec3b> excludedColors = this->excludedColors;
 		excludedColors.insert(excludedColors.end(), lineColors.begin(), lineColors.end());
-
-		auto dstImg = srcImg.clone();
 
 		std::vector<cv::Point> newLinePositions;
 		newLinePositions.reserve(linePositions.size());
@@ -81,22 +79,29 @@ class LineRemover : public Filter {
 			}
 		}
 
-		return std::make_pair(dstImg, newLinePositions);
+		return newLinePositions;
 	}
 
 public:
 	LineRemover(std::vector<cv::Vec3b> _lineColors, std::vector< cv::Vec3b> _excludedColors, int _maxTimes) : lineColors(_lineColors), excludedColors(_excludedColors), maxTimes(_maxTimes) {}
 
 	cv::Mat apply(cv::Mat srcImg) {
-		cv::Mat img = srcImg;
+		cv::Mat dstImg = srcImg.clone();
 		auto linePositions = collectLinePositions(srcImg);
 
-		for (int i = 0; i < maxTimes && 0 < linePositions.size(); i++) {
-			auto ret = _apply(img, linePositions);
-			img = ret.first;
-			linePositions = ret.second;
+		for (int i = 0; i < maxTimes; i++) {
+			auto newLinePositions = _apply(srcImg, dstImg, linePositions);
+			if (newLinePositions.size() == 0) {
+				break;
+			}
+
+			for (const auto& oldLinePosition : linePositions) {
+				srcImg.at<cv::Vec3b>(oldLinePosition) = dstImg.at<cv::Vec3b>(oldLinePosition);
+			}
+
+			linePositions = std::move(newLinePositions);
 		}
 
-		return img;
+		return dstImg;
 	}
 };
