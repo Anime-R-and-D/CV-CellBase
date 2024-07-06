@@ -27,30 +27,36 @@ class LineRemover : public Filter {
 		return returnVec;
 	}
 
-	__forceinline bool replaceColor(const cv::Mat& srcImg, cv::Mat& dstImg, const cv::Point& position, const std::vector<cv::Vec3b>& excludedColors) {
-		const int width = srcImg.cols;
-		const int height = srcImg.rows;
+	__forceinline bool __replaceColor(const cv::Mat& srcImg, cv::Mat& dstImg, const cv::Point& position, const std::vector<cv::Vec3b>& excludedColors, const int kernelY, const int kernelX) {
+		const int sampleY = position.y + kernelY;
+		const int sampleX = position.x + kernelX;
+		if (sampleY < 0 || srcImg.rows <= sampleY || sampleX < 0 || srcImg.cols <= sampleX) {
+			return false;
+		}
 
+		const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(sampleY, sampleX);
+
+		for (const auto& excludedColor : excludedColors) {
+			if (srcColor == excludedColor) {
+				return false;
+			}
+		}
+
+		dstImg.at<cv::Vec3b>(position) = srcColor;
+
+		return true;
+
+	}
+
+	__forceinline bool replaceColor(const cv::Mat& srcImg, cv::Mat& dstImg, const cv::Point& position, const std::vector<cv::Vec3b>& excludedColors) {
 		for (int kernelY = -1; kernelY <= 1; kernelY++) {
 			for (int kernelX = -1; kernelX <= 1; kernelX++) {
-				const int sampleY = position.y + kernelY;
-				const int sampleX = position.x + kernelX;
-				if (sampleY < 0 || height <= sampleY || sampleX < 0 || width <= sampleX) {
+				if (kernelY == 0 && kernelX == 0) {
 					continue;
 				}
 
-				const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(sampleY, sampleX);
-
-				bool excluded = false;
-				for (const auto& excludedColor : excludedColors) {
-					if (srcColor == excludedColor) {
-						excluded = true;
-						break;
-					}
-				}
-
-				if (excluded == false) {
-					dstImg.at<cv::Vec3b>(position) = srcColor;
+				bool isReplaced = __replaceColor(srcImg, dstImg, position, excludedColors, kernelY, kernelX);
+				if (isReplaced) {
 					return true;
 				}
 			}
