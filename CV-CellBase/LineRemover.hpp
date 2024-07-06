@@ -1,8 +1,8 @@
 #include "Filter.hpp"
 
 class LineRemover : public Filter {
-	cv::Vec3b lineColor;
-	cv::Vec3b backgroundColor;
+	std::vector<cv::Vec3b> lineColors;
+	std::vector<cv::Vec3b> excludedColors;
 	int maxTimes;
 
 	std::vector<cv::Point> collectLinePositions(cv::Mat srcImg) {
@@ -15,8 +15,11 @@ class LineRemover : public Filter {
 		for (int imgX = 0; imgX < width; imgX++) {
 			for (int imgY = 0; imgY < height; imgY++) {
 				const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(imgY, imgX);
-				if (srcColor == lineColor) {
-					returnVec.emplace_back(imgX, imgY);
+				for (const auto& lineColor : lineColors) {
+					if (srcColor == lineColor) {
+						returnVec.emplace_back(imgX, imgY);
+						break;
+					}
 				}
 			}
 		}
@@ -24,7 +27,7 @@ class LineRemover : public Filter {
 		return returnVec;
 	}
 
-	__forceinline bool replaceColor(const cv::Mat srcImg, cv::Mat dstImg, const cv::Point& position) {
+	__forceinline bool replaceColor(const cv::Mat& srcImg, cv::Mat& dstImg, const cv::Point& position, const std::vector<cv::Vec3b>& excludedColors) {
 		const int width = srcImg.cols;
 		const int height = srcImg.rows;
 
@@ -37,7 +40,16 @@ class LineRemover : public Filter {
 				}
 
 				const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(sampleY, sampleX);
-				if (srcColor != lineColor && srcColor != backgroundColor) {
+
+				bool excluded = false;
+				for (const auto& excludedColor : excludedColors) {
+					if (srcColor == excludedColor) {
+						excluded = true;
+						break;
+					}
+				}
+
+				if (excluded == false) {
 					dstImg.at<cv::Vec3b>(position) = srcColor;
 					return true;
 				}
@@ -48,13 +60,16 @@ class LineRemover : public Filter {
 	}
 
 	std::pair<cv::Mat, std::vector<cv::Point>> _apply(cv::Mat srcImg, const std::vector<cv::Point>& linePositions) {
+		std::vector<cv::Vec3b> excludedColors = this->excludedColors;
+		excludedColors.insert(excludedColors.end(), lineColors.begin(), lineColors.end());
+
 		auto dstImg = srcImg.clone();
 
 		std::vector<cv::Point> newLinePositions;
 		newLinePositions.reserve(linePositions.size());
 
 		for (const auto& linePosition : linePositions) {
-			bool isReplaced = replaceColor(srcImg, dstImg, linePosition);
+			bool isReplaced = replaceColor(srcImg, dstImg, linePosition, excludedColors);
 			if (isReplaced == false) {
 				newLinePositions.push_back(linePosition);
 			}
@@ -64,7 +79,7 @@ class LineRemover : public Filter {
 	}
 
 public:
-	LineRemover(cv::Vec3b _lineColor, cv::Vec3b _backgroundColor, int _maxTimes) : lineColor(_lineColor), backgroundColor(backgroundColor), maxTimes(_maxTimes) {}
+	LineRemover(std::vector<cv::Vec3b> _lineColors, std::vector< cv::Vec3b> _excludedColors, int _maxTimes) : lineColors(_lineColors), excludedColors(_excludedColors), maxTimes(_maxTimes) {}
 
 	cv::Mat apply(cv::Mat srcImg) {
 		cv::Mat img = srcImg;
