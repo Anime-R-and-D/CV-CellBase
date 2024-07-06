@@ -24,7 +24,7 @@ class LineRemover : public Filter {
 		return returnVec;
 	}
 
-	auto getRepaintColor(cv::Mat srcImg, const cv::Point& position) {
+	__forceinline bool replaceColor(const cv::Mat srcImg, cv::Mat dstImg, const cv::Point& position) {
 		const int width = srcImg.cols;
 		const int height = srcImg.rows;
 
@@ -38,12 +38,13 @@ class LineRemover : public Filter {
 
 				const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(sampleY, sampleX);
 				if (srcColor != lineColor && srcColor != backgroundColor) {
-					return srcColor;
+					dstImg.at<cv::Vec3b>(position) = srcColor;
+					return true;
 				}
 			}
 		}
 
-		return lineColor;
+		return false;
 	}
 
 	std::pair<cv::Mat, std::vector<cv::Point>> _apply(cv::Mat srcImg, const std::vector<cv::Point>& linePositions) {
@@ -53,12 +54,8 @@ class LineRemover : public Filter {
 		newLinePositions.reserve(linePositions.size());
 
 		for (const auto& linePosition : linePositions) {
-			auto dstColor = getRepaintColor(srcImg, linePosition);
-
-			if (dstColor != lineColor) {
-				dstImg.at<cv::Vec3b>(linePosition) = dstColor;
-			}
-			else {
+			bool isReplaced = replaceColor(srcImg, dstImg, linePosition);
+			if (isReplaced == false) {
 				newLinePositions.push_back(linePosition);
 			}
 		}
