@@ -6,25 +6,24 @@ class LineRemover : public Filter {
 	int maxTimes;
 
 	std::vector<cv::Point> collectLinePositions(cv::Mat srcImg) {
-		const int width = srcImg.cols;
-		const int height = srcImg.rows;
+		const int pixelCount = srcImg.cols * srcImg.rows;
 
-		std::vector<cv::Point> returnVec;
-		returnVec.reserve(static_cast<size_t>(width) * height);
+		std::vector<cv::Point> linePositions;
+		linePositions.reserve(pixelCount);
 
-		for (int imgX = 0; imgX < width; imgX++) {
-			for (int imgY = 0; imgY < height; imgY++) {
+		for (int imgY = 0; imgY < srcImg.rows; imgY++) {
+			for (int imgX = 0; imgX < srcImg.cols; imgX++) {
 				const cv::Vec3b srcColor = srcImg.at<cv::Vec3b>(imgY, imgX);
 				for (const auto& lineColor : lineColors) {
 					if (srcColor == lineColor) {
-						returnVec.emplace_back(imgX, imgY);
+						linePositions.emplace_back(imgX, imgY);
 						break;
 					}
 				}
 			}
 		}
 
-		return returnVec;
+		return linePositions;
 	}
 
 	__forceinline bool __replaceColor(const cv::Mat& srcImg, cv::Mat& dstImg, const cv::Point& position, const std::vector<cv::Vec3b>& excludedColors, const int kernelY, const int kernelX) {
