@@ -38,8 +38,8 @@ cv::Mat characterCellProcessing(cv::Mat srcImg) {
 			std::make_shared<::CellBlur>(20.0f, 21, targetColorsList),
 		});
 
-	std::vector<cv::Vec3b> lineColors = { {4,2,10} };
-	std::vector<cv::Vec3b> excludingColors = { {255,255,255} };
+	std::vector<cv::Vec4b> lineColors = { {4,2,10,0} };
+	std::vector<cv::Vec4b> excludingColors = { {255,255,255,0} };
 	cv::Mat layer_2 = applyFilters(
 		srcImg, {
 			std::make_shared<::CellBlur>(20.0f, 21, targetColorsList),
@@ -149,7 +149,7 @@ int main()
 	// cv::imshow("SobelX", SobelX().apply(srcImage));
 	// cv::imshow("SobelY", SobelY().apply(srcImage));
 	// cv::imshow("SobelAbsXY", SobelAbsXY().apply(srcImage));
-	cv::imshow("LineRemover", LineRemover3b({ {4,2,10}, {6,3,13} }, { {255,255,255} }, 100).apply(srcImage));
+	cv::imshow("LineRemover", LineRemover3b({ {4,2,10,3} }, { {255,255,255,0} }, 100).apply(srcImage));
 
 	// cv::imshow("CharacterCellProcessing", characterCellProcessing(srcImage));
 	// characterCellProcessingMovie("movie_test/*.png", "results.avi");
